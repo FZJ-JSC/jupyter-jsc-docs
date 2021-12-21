@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Django",
+            "type": "python",
+            "request": "launch",
+            "envFile": "${workspaceFolder}/config/unit_tests/.envs",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "runserver",
+                "9000"
+            ],
+            "django": true
+        }
+    ]
+}

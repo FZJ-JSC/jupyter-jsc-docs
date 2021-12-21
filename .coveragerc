@@ -1,0 +1,10 @@
+[run]
+source = tunnel,common
+omit = 
+   */*tests.py
+   */tests/*  
+   */migrations/*
+
+[report]
+show_missing = True
+skip_covered = True

@@ -1,0 +1,2 @@
+SSHCONFIGFILE=${CI_PROJECT_DIR}/config/cicd/ssh_config
+SYSTEMS_PATH=${CI_PROJECT_DIR}/config/cicd/systems.json
