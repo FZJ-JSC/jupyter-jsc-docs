@@ -22,6 +22,8 @@
 
 stages:
   - unittest
+  - build
+  - build-tag
 
 variables:
   UNICORE_TSI_VERSION: "8.2.1-ljupyter-1.3"
@@ -47,3 +49,25 @@ unittest:
     - mkdir -p /tmp/keys && mkdir -p /tmp/ssh_socket && echo "$TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY" >> /tmp/keys/tunnel && echo "$TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY" >> /tmp/keys/remote && chmod 400 /tmp/keys/tunnel && chmod 400 /tmp/keys/remote
     - pytest
     - pytest -c ${CI_PROJECT_DIR}/pytest_cicd.ini
+
+kaniko-build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+
+kaniko-build-tag:
+  stage: build-tag
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+  rules:
+    - if: $CI_COMMIT_TAG
