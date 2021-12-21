@@ -1,6 +1,6 @@
 # pull official base image
 # FROM alpine
-FROM python:3.8.3-alpine
+FROM python:3.10.1-alpine3.15
 
 RUN apk update && apk upgrade && apk add bash mailcap
 
