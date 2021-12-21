@@ -51,6 +51,8 @@ def request_decorator(func):
         try:
             return update_logging_handler(*args, **kwargs)
         except Exception as e:
+            if e.__module__ == "django.http.response":
+                raise e
             log.exception("Unexpected Error")
             return Response(status=500)
 

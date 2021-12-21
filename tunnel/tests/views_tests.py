@@ -1,6 +1,7 @@
 import os
 from unittest import mock
 
+import django
 from django.urls import reverse
 from rest_framework.test import APITestCase
 

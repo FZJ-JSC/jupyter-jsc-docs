@@ -38,13 +38,12 @@ unittest:
   image:
     name: python:alpine3.14
   before_script:
-    - apk add gcc build-base linux-headers
+    - apk add gcc build-base linux-headers openssh
     - pip3 install -r ${CI_PROJECT_DIR}/build-requirements.txt
   script:
     - COUNTER=15; until [ $COUNTER -eq 0 ]; do LINES=$(netstat -ltnp 2>/dev/null | tr -s ' ' | grep ":4433" | wc -l || true); if [[ $LINES -eq 1 ]]; then break; else echo "UNICORE TSI not running yet"; sleep 10; let COUNTER-=1; fi; done; if [[ $COUNTER -eq 0 ]]; then echo "TSI GateWay not reachable. Exit"; exit 1; fi
     - echo "Give UNICORE-TSI time to fully start"; sleep 10
     - set -a; source ${CI_PROJECT_DIR}/config/cicd/.envs ; set +a
-    - mkdir -p /tmp/keys && mkdir -p /tmp/ssh_socket && echo "$TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY" >> /tmp/keys/tunnel && echo "$TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY" >> /tmp/keys/remote
-    - sleep 1200
+    - mkdir -p /tmp/keys && mkdir -p /tmp/ssh_socket && echo "$TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY" >> /tmp/keys/tunnel && echo "$TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY" >> /tmp/keys/remote && chmod 400 /tmp/keys/tunnel && chmod 400 /tmp/keys/remote
     - pytest
     - pytest -c ${CI_PROJECT_DIR}/pytest_cicd.ini

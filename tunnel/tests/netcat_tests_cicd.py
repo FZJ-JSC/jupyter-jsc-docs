@@ -43,45 +43,39 @@ class CICDTests(APITestCase):
         self.assertEqual(resp.status_code, 201)
         backend_id = int(resp.headers["Location"])
         models = TunnelModel.objects.all()
-        print(backend_id)
-        print(models)
         for model in models:
-            print(f"Compare: {model.backend_id} - {backend_id}")
             if model.backend_id == backend_id:
-                print("Define local_port")
                 local_port = model.local_port
-        # print("Sleep 10")
-        # time.sleep(10)
         self.assertTrue(netcat("localhost", local_port, "test"))
 
-    # def test_stop_tunnel(self):
-    #     url = reverse("tunnel-list")
-    #     resp = self.client.post(url, data=self.full_data, format="json")
-    #     self.assertEqual(resp.status_code, 201)
-    #     backend_id = resp.headers["Location"]
-    #     models = TunnelModel.objects.all()
-    #     for model in models:
-    #         if model.backend_id == backend_id:
-    #             local_port = model.local_port
-    #     self.assertTrue(netcat("localhost", local_port, "test"))
-    #     response_del = self.client.delete(url+f"{backend_id}/", format="json")
-    #     self.assertEqual(response_del.status_code, 204)
-    #     self.assertFalse(netcat("localhost", local_port, "test"))
+    def test_stop_tunnel(self):
+        url = reverse("tunnel-list")
+        resp = self.client.post(url, data=self.full_data, format="json")
+        self.assertEqual(resp.status_code, 201)
+        backend_id = int(resp.headers["Location"])
+        models = TunnelModel.objects.all()
+        for model in models:
+            if model.backend_id == backend_id:
+                local_port = model.local_port
+        self.assertTrue(netcat("localhost", local_port, "test"))
+        response_del = self.client.delete(url + f"{backend_id}/", format="json")
+        self.assertEqual(response_del.status_code, 204)
+        self.assertFalse(netcat("localhost", local_port, "test"))
 
-    # def test_get_tunnel(self):
-    #     url = reverse("tunnel-list")
-    #     resp = self.client.post(url, data=self.full_data, format="json")
-    #     self.assertEqual(resp.status_code, 201)
-    #     backend_id = resp.headers["Location"]
-    #     models = TunnelModel.objects.all()
-    #     for model in models:
-    #         if model.backend_id == backend_id:
-    #             local_port = model.local_port
-    #     self.assertTrue(netcat("localhost", local_port, "test"))
-    #     resp_get = self.client.get(url+f"{backend_id}/", format="json")
-    #     self.assertEqual(resp_get.status_code, 200)
-    #     self.assertTrue(resp_get.data["running"])
-    #     response_del = self.client.delete(url+f"{backend_id}/", format="json")
-    #     self.assertEqual(response_del.status_code, 204)
-    #     resp_get = self.client.get(url+f"{backend_id}/", format="json")
-    #     self.assertEqual(resp_get.status_code, 404)
+    def test_get_tunnel(self):
+        url = reverse("tunnel-list")
+        resp = self.client.post(url, data=self.full_data, format="json")
+        self.assertEqual(resp.status_code, 201)
+        backend_id = int(resp.headers["Location"])
+        models = TunnelModel.objects.all()
+        for model in models:
+            if model.backend_id == backend_id:
+                local_port = model.local_port
+        self.assertTrue(netcat("localhost", local_port, "test"))
+        resp_get = self.client.get(url + f"{backend_id}/", format="json")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertTrue(resp_get.data["running"])
+        response_del = self.client.delete(url + f"{backend_id}/", format="json")
+        self.assertEqual(response_del.status_code, 204)
+        resp_get = self.client.get(url + f"{backend_id}/", format="json")
+        self.assertEqual(resp_get.status_code, 404)
