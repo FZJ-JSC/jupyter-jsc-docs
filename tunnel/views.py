@@ -2,13 +2,17 @@
 import copy
 import logging
 
+from django.http.response import Http404
 from rest_framework import status
 from rest_framework import utils
 from rest_framework import viewsets
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from . import utils
+from .models import RemoteModel
 from .models import TunnelModel
+from .serializers import RemoteSerializer
 from .serializers import TunnelSerializer
 from common.decorators import request_decorator
 from common.logger import LOGGER_NAME
@@ -16,7 +20,7 @@ from common.logger import LOGGER_NAME
 log = logging.getLogger(LOGGER_NAME)
 
 
-class TunnelViewSet(viewsets.ModelViewSet, utils.TimedCachedProperties):
+class TunnelViewSet(viewsets.ModelViewSet):
     serializer_class = TunnelSerializer
     queryset = TunnelModel.objects.all()
 
@@ -48,11 +52,10 @@ class TunnelViewSet(viewsets.ModelViewSet, utils.TimedCachedProperties):
 
         # start tunnel
         try:
-            utils.start_tunnel(**self.get_kwargs())
+            if not utils.start_tunnel(**self.get_kwargs()):
+                return Response(status=utils.COULD_NOT_START_TUNNEL)
         except utils.SystemNotAvailableException:
             return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
-        except utils.CouldNotStartTunnelException:
-            return Response(status=utils.COULD_NOT_START_TUNNEL)
 
         return super().create(request, *args, **kwargs)
 
@@ -79,3 +82,59 @@ class TunnelViewSet(viewsets.ModelViewSet, utils.TimedCachedProperties):
         instance = self.get_object()
         self.perform_destroy(instance, log.info)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RemoteViewSet(viewsets.ModelViewSet):
+    serializer_class = RemoteSerializer
+    queryset = RemoteModel.objects.all()
+
+    lookup_field = "hostname"
+
+    def get_kwargs(self, instance=None, data=None):
+        if instance:
+            kwargs = {
+                "hostname": instance.hostname,
+                "running": instance.running,
+                "last_updated": instance.last_updated,
+            }
+        elif data is None:
+            kwargs = copy.deepcopy(self.request.data)
+        else:
+            kwargs = copy.deepcopy(data)
+        kwargs["uuidcode"] = self.request.query_params.get("uuidcode", "no-uuidcode")
+        return kwargs
+
+    @request_decorator
+    def create(self, request, *args, **kwargs):
+        try:
+            running = utils.start_remote(**self.get_kwargs())
+        except utils.SystemNotAvailableException:
+            return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
+        RemoteModel.objects.update_or_create(
+            hostname=request.data["hostname"], running=running
+        )
+        return Response(data={"running": running}, status=status.HTTP_201_CREATED)
+
+    @request_decorator
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            kwargs = self.get_kwargs(instance)
+        except Http404 as e:
+            kwargs = self.get_kwargs(data=kwargs)
+        running = utils.status_remote(**kwargs)
+        RemoteModel.objects.update_or_create(
+            hostname=kwargs["hostname"], running=running
+        )
+        return Response({"running": running})
+
+    @request_decorator
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            kwargs = self.get_kwargs(instance)
+        except Http404 as e:
+            kwargs = self.get_kwargs(data=kwargs)
+        utils.stop_remote(**kwargs)
+        RemoteModel.objects.update_or_create(hostname=kwargs["hostname"], running=False)
+        return Response()

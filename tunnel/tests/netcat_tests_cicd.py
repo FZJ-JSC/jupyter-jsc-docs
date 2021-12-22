@@ -28,18 +28,58 @@ from rest_framework.test import APITestCase
 
 
 class CICDTests(APITestCase):
-    full_data = {
+    remote_data = {"hostname": "demo_site"}
+
+    tunnel_data = {
         "backend_id": 5,
         "hostname": "demo_site",
         "target_node": "localhost",
         "target_port": 41582,
     }
 
+    logger_config_stream = {
+        "class": "logging.StreamHandler",
+        "formatter": "simple",
+        "level": 10,
+        "stream": "ext://sys.stdout",
+    }
+
+    def setUp(self):
+        url = reverse("handler-list")
+        self.client.post(f"{url}stream/", data=self.logger_config_stream, format="json")
+        return super().setUp()
+
+    def test_create_remote(self):
+        url = reverse("remote-list")
+        resp = self.client.post(url, data=self.remote_data, format="json")
+        self.assertTrue(resp.data["running"])
+
+    def test_status_remote(self):
+        url = reverse("remote-list")
+        resp = self.client.get(f"{url}demo_site/", format="json")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_stop_remote(self):
+        url = reverse("remote-list")
+        resp = self.client.delete(f"{url}demo_site/", format="json")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_remote_complete(self):
+        url = reverse("remote-list")
+        resp = self.client.post(url, data=self.remote_data, format="json")
+        self.assertTrue(resp.data["running"])
+        resp = self.client.get(f"{url}demo_site/", format="json")
+        self.assertTrue(resp.data["running"])
+        resp = self.client.delete(f"{url}demo_site/", format="json")
+        self.assertEqual(resp.status_code, 200)
+        resp = self.client.get(f"{url}demo_site/", format="json")
+        self.assertFalse(resp.data["running"])
+
     def test_create_tunnel(self):
         log = logging.getLogger(LOGGER_NAME)
         log.setLevel(10)
         url = reverse("tunnel-list")
-        resp = self.client.post(url, data=self.full_data, format="json")
+        resp = self.client.post(url, data=self.tunnel_data, format="json")
         self.assertEqual(resp.status_code, 201)
         backend_id = int(resp.headers["Location"])
         models = TunnelModel.objects.all()
@@ -50,7 +90,7 @@ class CICDTests(APITestCase):
 
     def test_stop_tunnel(self):
         url = reverse("tunnel-list")
-        resp = self.client.post(url, data=self.full_data, format="json")
+        resp = self.client.post(url, data=self.tunnel_data, format="json")
         self.assertEqual(resp.status_code, 201)
         backend_id = int(resp.headers["Location"])
         models = TunnelModel.objects.all()
@@ -64,7 +104,7 @@ class CICDTests(APITestCase):
 
     def test_get_tunnel(self):
         url = reverse("tunnel-list")
-        resp = self.client.post(url, data=self.full_data, format="json")
+        resp = self.client.post(url, data=self.tunnel_data, format="json")
         self.assertEqual(resp.status_code, 201)
         backend_id = int(resp.headers["Location"])
         models = TunnelModel.objects.all()

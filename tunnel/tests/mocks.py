@@ -14,6 +14,14 @@ def mocked_popen_init(*args, **kwargs):
     return PopenMocked(*args, **kwargs)
 
 
+def mocked_remote_popen_init(*args, **kwargs):
+    return RemotePopenMocked(*args, **kwargs)
+
+
+def mocked_remote_popen_init_218(*args, **kwargs):
+    return RemotePopenMocked218(*args, **kwargs)
+
+
 def mocked_popen_init_check_fail(*args, **kwargs):
     return PopenMockedCheckFail(*args, **kwargs)
 
@@ -48,6 +56,32 @@ class PopenMocked:
     @property
     def returncode(self):
         return 0
+
+
+class RemotePopenMocked:
+    cmd = ""
+
+    def __init__(self, cmd, *args, **kwargs):
+        self.cmd = cmd
+
+    def __enter__(self, *args, **kwargs):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        pass
+
+    def communicate(self):
+        return ("stdout".encode("utf-8"), "stderr".encode("utf-8"))
+
+    @property
+    def returncode(self):
+        return 217
+
+
+class RemotePopenMocked218(RemotePopenMocked):
+    @property
+    def returncode(self):
+        return 218
 
 
 class PopenMockedCheckFail(PopenMocked):

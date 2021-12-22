@@ -43,7 +43,7 @@ def is_port_in_use(port):
         return s.connect_ex(("localhost", port)) == 0
 
 
-def get_cmd(prefix, action, verbose=False, **kwargs):
+def get_base_cmd(verbose=False):
     base_cmd = [
         "timeout",
         os.environ.get("SSHTIMEOUT", "3"),
@@ -53,30 +53,44 @@ def get_cmd(prefix, action, verbose=False, **kwargs):
     ]
     if verbose:
         base_cmd.append("-v")
+    return base_cmd
+
+
+def get_remote_cmd(action, verbose=False, **kwargs):
+    base_cmd = get_base_cmd(verbose=verbose)
+    return base_cmd + [f"remote_{kwargs['hostname']}", action]
+
+
+def get_tunnel_cmd(action, verbose=False, **kwargs):
+    base_cmd = get_base_cmd(verbose=verbose)
     action_cmd = [
         "-O",
         action,
-        f"{prefix}_{kwargs['hostname']}",
+        f"tunnel_{kwargs['hostname']}",
         "-L",
         f"0.0.0.0:{kwargs['local_port']}:{kwargs['target_node']}:{kwargs['target_port']}",
     ]
     check_cmd = [
         "-O",
         "check",
-        f"{prefix}_{kwargs['hostname']}",
+        f"tunnel_{kwargs['hostname']}",
     ]
-    create_cmd = [f"{prefix}_{kwargs['hostname']}"]
-    remote_cmd = base_cmd + create_cmd + [action]
+    create_cmd = [f"tunnel_{kwargs['hostname']}"]
     cmds = {
         "cancel": base_cmd + action_cmd,
         "check": base_cmd + check_cmd,
         "create": base_cmd + create_cmd,
         "forward": base_cmd + action_cmd,
-        "start": remote_cmd,
-        "status": remote_cmd,
-        "stop": remote_cmd,
     }
     return cmds[action]
+
+
+def get_cmd(prefix, action, verbose=False, **kwargs):
+    if prefix == "remote":
+        return get_remote_cmd(action, verbose=verbose, **kwargs)
+    elif prefix == "tunnel":
+        return get_tunnel_cmd(action, verbose=verbose, **kwargs)
+    return []
 
 
 alert_admins_log = {True: log.critical, False: log.warning}
@@ -92,7 +106,14 @@ action_log = {
 
 
 def run_popen_cmd(
-    prefix, action, log_msg, alert_admins=False, max_attempts=1, verbose=False, **kwargs
+    prefix,
+    action,
+    log_msg,
+    alert_admins=False,
+    max_attempts=1,
+    verbose=False,
+    expected_returncode=0,
+    **kwargs,
 ):
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
     log_extra = copy.deepcopy(kwargs)
@@ -115,7 +136,7 @@ def run_popen_cmd(
         extra=log_extra,
     )
 
-    if returncode != 0:
+    if returncode != expected_returncode:
         if max_attempts > 1:
             return run_popen_cmd(
                 prefix,
@@ -130,32 +151,29 @@ def run_popen_cmd(
             f"{log_msg} failed. Action may be required",
             extra=log_extra,
         )
-    return returncode == 0
+    return returncode == expected_returncode
 
 
-def check_tunnel_connection(prefix):
-    def decorator(func):
-        def build_up_connection(*args, **kwargs):
-            # check if ssh connection to the node is up
+def check_tunnel_connection(func):
+    def build_up_connection(*args, **kwargs):
+        # check if ssh connection to the node is up
+        if not run_popen_cmd(
+            "tunnel", "check", "SSH tunnel check connection", **kwargs
+        ):
             if not run_popen_cmd(
-                prefix, "check", "SSH tunnel check connection", **kwargs
+                "tunnel",
+                "create",
+                "SSH tunnel create connection",
+                alert_admins=True,
+                max_attempts=3,
+                **kwargs,
             ):
-                if not run_popen_cmd(
-                    prefix,
-                    "create",
-                    "SSH tunnel create connection",
-                    alert_admins=True,
-                    max_attempts=3,
-                    **kwargs,
-                ):
-                    raise SystemNotAvailableException(
-                        f"uuidcode={kwargs['uuidcode']} - Could not connect to {kwargs['hostname']}"
-                    )
-            return func(*args, **kwargs)
+                raise SystemNotAvailableException(
+                    f"uuidcode={kwargs['uuidcode']} - Could not connect to {kwargs['hostname']}"
+                )
+        return func(*args, **kwargs)
 
-        return build_up_connection
-
-    return decorator
+    return build_up_connection
 
 
 class TimedCachedProperties:
@@ -167,7 +185,7 @@ class TimedCachedProperties:
         return systems_config
 
 
-@check_tunnel_connection(prefix="tunnel")
+@check_tunnel_connection
 def stop_tunnel(**kwargs):
     run_popen_cmd(
         "tunnel",
@@ -179,50 +197,49 @@ def stop_tunnel(**kwargs):
     )
 
 
-@check_tunnel_connection(prefix="tunnel")
+@check_tunnel_connection
 def start_tunnel(**kwargs):
-    if not run_popen_cmd(
+    return run_popen_cmd(
         "tunnel",
         "forward",
         "SSH start tunnel",
         alert_admins=True,
         max_attempts=3,
         **kwargs,
-    ):
-        raise CouldNotStartTunnelException(
-            f"uuidcode={kwargs['uuidcode']} - Could not start tunnel"
-        )
+    )
 
 
-@check_tunnel_connection(prefix="remote")
 def start_remote(**kwargs):
-    if not run_popen_cmd(
+    return run_popen_cmd(
         "remote",
         "start",
         "SSH start remote",
         alert_admins=True,
         max_attempts=3,
-        **kwargs,
-    ):
-        raise CouldNotStartRemoteException(
-            f"uuidcode={kwargs['uuidcode']} - Could not start remote"
-        )
-
-
-@check_tunnel_connection(prefix="remote")
-def status_remote(**kwargs):
-    run_popen_cmd(
-        "remote",
-        "status",
-        "SSH status remote",
-        alert_admins=True,
-        max_attempts=3,
+        expected_returncode=217,
         **kwargs,
     )
 
 
-@check_tunnel_connection(prefix="remote")
+def status_remote(**kwargs):
+    return run_popen_cmd(
+        "remote",
+        "status",
+        "SSH status remote",
+        alert_admins=False,
+        max_attempts=1,
+        expected_returncode=217,
+        **kwargs,
+    )
+
+
 def stop_remote(**kwargs):
     run_popen_cmd(
-        "remote", "stop", "SSH stop remote", alert_admins=True, max_attempts=3, **kwargs
+        "remote",
+        "stop",
+        "SSH stop remote",
+        alert_admins=True,
+        max_attempts=3,
+        expected_returncode=218,
+        **kwargs,
     )
