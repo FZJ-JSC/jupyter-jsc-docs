@@ -6,6 +6,11 @@ if [ -z ${SSHD_LOG_PATH} ]; then
 fi
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
+# Check for secret key
+if [[ -z $TUNNEL_SECRET_KEY ]]; then
+    export TUNNEL_SECRET_KEY=$(uuidgen)
+fi
+
 # Database setup / wait for database
 if [ "$SQL_ENGINE" == "postgres" ]; then
     echo "Waiting for postgres..."
@@ -16,8 +21,11 @@ if [ "$SQL_ENGINE" == "postgres" ]; then
 elif [[ -z ${SQL_DATABASE} ]]; then
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py makemigrations"
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py migrate"
-    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
     su tunnel -c "echo \"import uuid; from django.contrib.auth.models import User; tunnelpass=uuid.uuid4().hex; User.objects.create_superuser('admin', 'admin@example.com', tunnelpass); print(f'admin secret: {tunnelpass}')\" | python manage.py shell"
+fi
+
+if [[ ! -d /home/tunnel/web/static ]]; then
+    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
 fi
 
 if [[ -z $WORKER ]]; then

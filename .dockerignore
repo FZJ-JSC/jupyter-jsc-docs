@@ -5,10 +5,10 @@
 .git
 .gitignore
 .vscode
-jobs/tests
 keys
 ssh_socket
 venv
+tests
 README.md
 LICENSE
 .dockerignore
