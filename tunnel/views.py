@@ -95,7 +95,7 @@ class RemoteViewSet(viewsets.ModelViewSet):
             kwargs = {
                 "hostname": instance.hostname,
                 "running": instance.running,
-                "last_updated": instance.last_updated,
+                "updated_at": instance.updated_at,
             }
         elif data is None:
             kwargs = copy.deepcopy(self.request.data)
