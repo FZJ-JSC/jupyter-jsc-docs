@@ -31,6 +31,24 @@ class RemoteViewTests(APITestCase):
         "tunnel.utils.subprocess.Popen",
         side_effect=mocked_remote_popen_init,
     )
+    def test_create_updated_at(self, mocked_popen_init):
+        url = reverse("remote-list")
+        resp = self.client.post(url, data=self.remote_data, format="json")
+        self.assertTrue("running" in resp.data.keys())
+        models = RemoteModel.objects.all()
+        model = models[0]
+        upd1 = model.updated_at
+        resp = self.client.post(url, data=self.remote_data, format="json")
+        self.assertTrue("running" in resp.data.keys())
+        models = RemoteModel.objects.all()
+        model = models[0]
+        upd2 = model.updated_at
+        self.assertNotEqual(upd1, upd2)
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_remote_popen_init,
+    )
     def test_create_model_created(self, mocked_popen_init):
         url = reverse("remote-list")
         self.assertEqual(len(RemoteModel.objects.all()), 0)
