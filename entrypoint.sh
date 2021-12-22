@@ -13,12 +13,11 @@ if [ "$SQL_ENGINE" == "postgres" ]; then
       sleep 0.1
     done
     echo "PostgreSQL started"
-elif [[ -z ${SQL_DATABASE} ]]
-    
+elif [[ -z ${SQL_DATABASE} ]]; then
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py makemigrations"
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py migrate"
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
-    su tunnel -c "export TUNNELPASS=$(uuidgen) echo \"import os; from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@example.com', os.environ['TUNNELPASS'])\" | python manage.py shell ; echo \"Admin password: $TUNNELPASS\""
+    su tunnel -c "echo \"import uuid; from django.contrib.auth.models import User; tunnelpass=uuid.uuid4().hex; User.objects.create_superuser('admin', 'admin@example.com', tunnelpass); print(f'admin secret: {tunnelpass}')\" | python manage.py shell"
 fi
 
 if [[ -z $WORKER ]]; then
