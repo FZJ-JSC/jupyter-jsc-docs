@@ -20,6 +20,86 @@ class TunnelViewSets(APITestCase):
         "target_port": 34567,
     }
 
+    expected_popen_args_tunnel_check = [
+        "timeout",
+        "3",
+        "ssh",
+        "-F",
+        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        "-O",
+        "check",
+        f"tunnel_{full_data['hostname']}",
+    ]
+
+    expected_popen_args_tunnel_forward = [
+        "timeout",
+        "3",
+        "ssh",
+        "-F",
+        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        "-O",
+        "forward",
+        f"tunnel_{full_data['hostname']}",
+        "-L",
+    ]
+
+    expected_popen_args_tunnel_forward_v = [
+        "timeout",
+        "3",
+        "ssh",
+        "-F",
+        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        "-v",
+        "-O",
+        "forward",
+        f"tunnel_{full_data['hostname']}",
+        "-L",
+    ]
+
+    expected_popen_args_tunnel_create = [
+        "timeout",
+        "3",
+        "ssh",
+        "-F",
+        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        f"tunnel_{full_data['hostname']}",
+    ]
+
+    expected_popen_args_tunnel_create_v = [
+        "timeout",
+        "3",
+        "ssh",
+        "-F",
+        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        "-v",
+        f"tunnel_{full_data['hostname']}",
+    ]
+
+    expected_popen_args_tunnel_cancel = [
+        "timeout",
+        "3",
+        "ssh",
+        "-F",
+        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        "-O",
+        "cancel",
+        f"tunnel_{full_data['hostname']}",
+        "-L",
+    ]
+
+    expected_popen_args_tunnel_cancel_v = [
+        "timeout",
+        "3",
+        "ssh",
+        "-F",
+        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        "-v",
+        "-O",
+        "cancel",
+        f"tunnel_{full_data['hostname']}",
+        "-L",
+    ]
+
     header = {"uuidcode": "uuidcode123"}
 
     @mock.patch(
@@ -48,30 +128,14 @@ class TunnelViewSets(APITestCase):
             url, headers=self.header, data=self.full_data, format="json"
         )
         self.assertEqual(resp.status_code, 201)
-        expected_args_1 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "check",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_2 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "forward",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        self.assertEqual(mocked_popen_init.call_args_list[0][0][0], expected_args_1)
+
         self.assertEqual(
-            mocked_popen_init.call_args_list[1][0][0][:-1], expected_args_2
+            mocked_popen_init.call_args_list[0][0][0],
+            self.expected_popen_args_tunnel_check,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[1][0][0][:-1],
+            self.expected_popen_args_tunnel_forward,
         )
 
     @mock.patch(
@@ -84,45 +148,23 @@ class TunnelViewSets(APITestCase):
             url, headers=self.header, data=self.full_data, format="json"
         )
         self.assertEqual(response.status_code, 550)
-        expected_args_1 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "check",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_2 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_3 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_4 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-v",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        self.assertEqual(mocked_popen_init.call_args_list[0][0][0], expected_args_1)
-        self.assertEqual(mocked_popen_init.call_args_list[1][0][0], expected_args_2)
-        self.assertEqual(mocked_popen_init.call_args_list[2][0][0], expected_args_3)
-        self.assertEqual(mocked_popen_init.call_args_list[3][0][0], expected_args_4)
+
+        self.assertEqual(
+            mocked_popen_init.call_args_list[0][0][0],
+            self.expected_popen_args_tunnel_check,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[1][0][0],
+            self.expected_popen_args_tunnel_create,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[2][0][0],
+            self.expected_popen_args_tunnel_create,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[3][0][0],
+            self.expected_popen_args_tunnel_create_v,
+        )
 
     @mock.patch(
         "tunnel.utils.subprocess.Popen",
@@ -134,59 +176,22 @@ class TunnelViewSets(APITestCase):
             url, headers=self.header, data=self.full_data, format="json"
         )
         self.assertEqual(response.status_code, 551)
-        expected_args_1 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "check",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_3 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "forward",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        expected_args_4 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "forward",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        expected_args_5 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-v",
-            "-O",
-            "forward",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        self.assertEqual(mocked_popen_init.call_args_list[0][0][0], expected_args_1)
+
         self.assertEqual(
-            mocked_popen_init.call_args_list[1][0][0][:-1], expected_args_3
+            mocked_popen_init.call_args_list[0][0][0],
+            self.expected_popen_args_tunnel_check,
         )
         self.assertEqual(
-            mocked_popen_init.call_args_list[2][0][0][:-1], expected_args_4
+            mocked_popen_init.call_args_list[1][0][0][:-1],
+            self.expected_popen_args_tunnel_forward,
         )
         self.assertEqual(
-            mocked_popen_init.call_args_list[3][0][0][:-1], expected_args_5
+            mocked_popen_init.call_args_list[2][0][0][:-1],
+            self.expected_popen_args_tunnel_forward,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[3][0][0][:-1],
+            self.expected_popen_args_tunnel_forward_v,
         )
 
     @mock.patch(
@@ -199,39 +204,17 @@ class TunnelViewSets(APITestCase):
             url, headers=self.header, data=self.full_data, format="json"
         )
         self.assertEqual(response.status_code, 201)
-        expected_args_1 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "check",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_2 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_3 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "forward",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        self.assertEqual(mocked_popen_init.call_args_list[0][0][0], expected_args_1)
-        self.assertEqual(mocked_popen_init.call_args_list[1][0][0], expected_args_2)
         self.assertEqual(
-            mocked_popen_init.call_args_list[2][0][0][:-1], expected_args_3
+            mocked_popen_init.call_args_list[0][0][0],
+            self.expected_popen_args_tunnel_check,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[1][0][0],
+            self.expected_popen_args_tunnel_create,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[2][0][0][:-1],
+            self.expected_popen_args_tunnel_forward,
         )
 
     @mock.patch(
@@ -250,30 +233,13 @@ class TunnelViewSets(APITestCase):
             url + f"{id}/", headers=self.header, format="json"
         )
         self.assertEqual(response_del.status_code, 204)
-        expected_args_1 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "check",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_2 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "cancel",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        self.assertEqual(mocked_popen_init.call_args_list[2][0][0], expected_args_1)
         self.assertEqual(
-            mocked_popen_init.call_args_list[3][0][0][:-1], expected_args_2
+            mocked_popen_init.call_args_list[2][0][0],
+            self.expected_popen_args_tunnel_check,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[3][0][0][:-1],
+            self.expected_popen_args_tunnel_cancel,
         )
 
     @mock.patch(
@@ -292,45 +258,17 @@ class TunnelViewSets(APITestCase):
             url + f"{id}/", headers=self.header, format="json"
         )
         self.assertEqual(response_del.status_code, 204)
-        expected_args_1 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "check",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_2 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "cancel",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        expected_args_3 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-v",
-            "-O",
-            "cancel",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        self.assertEqual(mocked_popen_init.call_args_list[2][0][0], expected_args_1)
         self.assertEqual(
-            mocked_popen_init.call_args_list[3][0][0][:-1], expected_args_2
+            mocked_popen_init.call_args_list[2][0][0],
+            self.expected_popen_args_tunnel_check,
         )
         self.assertEqual(
-            mocked_popen_init.call_args_list[4][0][0][:-1], expected_args_3
+            mocked_popen_init.call_args_list[3][0][0][:-1],
+            self.expected_popen_args_tunnel_cancel,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[4][0][0][:-1],
+            self.expected_popen_args_tunnel_cancel_v,
         )
 
     @mock.patch(
@@ -365,53 +303,33 @@ class TunnelViewSets(APITestCase):
             url, headers=self.header, data=self.full_data, format="json"
         )
         self.assertEqual(response.status_code, 201)
-        expected_args_1 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "check",
-            f"tunnel_{self.full_data['hostname']}",
-        ]
-        expected_args_2 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "forward",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
-        expected_args_3 = [
-            "timeout",
-            "3",
-            "ssh",
-            "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
-            "-O",
-            "cancel",
-            f"tunnel_{self.full_data['hostname']}",
-            "-L",
-        ]
 
         # Create first tunnel
-        self.assertEqual(mocked_popen_init.call_args_list[0][0][0], expected_args_1)
         self.assertEqual(
-            mocked_popen_init.call_args_list[1][0][0][:-1], expected_args_2
+            mocked_popen_init.call_args_list[0][0][0],
+            self.expected_popen_args_tunnel_check,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[1][0][0][:-1],
+            self.expected_popen_args_tunnel_forward,
         )
 
         # Stop first tunnel
-        self.assertEqual(mocked_popen_init.call_args_list[2][0][0], expected_args_1)
         self.assertEqual(
-            mocked_popen_init.call_args_list[3][0][0][:-1], expected_args_3
+            mocked_popen_init.call_args_list[2][0][0],
+            self.expected_popen_args_tunnel_check,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[3][0][0][:-1],
+            self.expected_popen_args_tunnel_cancel,
         )
 
         # Create second tunnel
-        self.assertEqual(mocked_popen_init.call_args_list[4][0][0], expected_args_1)
         self.assertEqual(
-            mocked_popen_init.call_args_list[5][0][0][:-1], expected_args_2
+            mocked_popen_init.call_args_list[4][0][0],
+            self.expected_popen_args_tunnel_check,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[5][0][0][:-1],
+            self.expected_popen_args_tunnel_forward,
         )
