@@ -28,7 +28,8 @@ from rest_framework.test import APITestCase
 
 
 class CICDTests(APITestCase):
-    # At the moment we run this tests, remote tunneling will never work. So if it's returning 218 (as expected for not running), we're happy for now
+    # At the moment we run this tests, remote tunneling will never work.
+    # So if it's returning 218 (as expected for not running), we're happy for now
     remote_data = {"hostname": "demo_site"}
 
     tunnel_data = {
