@@ -42,7 +42,7 @@ class RemoteViewTests(APITestCase):
         self.assertTrue(model.running)
         self.assertEqual(len(models), 1)
         resp = self.client.post(url, data=self.remote_data, format="json")
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 201)
         self.assertEqual(model.hostname, self.remote_data["hostname"])
         self.assertTrue(model.running)
         self.assertEqual(len(models), 1)
