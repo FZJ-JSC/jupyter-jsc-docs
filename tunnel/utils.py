@@ -112,7 +112,7 @@ def run_popen_cmd(
     alert_admins=False,
     max_attempts=1,
     verbose=False,
-    expected_returncode=0,
+    expected_returncodes=[0],
     **kwargs,
 ):
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
@@ -136,7 +136,7 @@ def run_popen_cmd(
         extra=log_extra,
     )
 
-    if returncode != expected_returncode:
+    if returncode not in expected_returncodes:
         if max_attempts > 1:
             return run_popen_cmd(
                 prefix,
@@ -151,22 +151,26 @@ def run_popen_cmd(
             f"{log_msg} failed. Action may be required",
             extra=log_extra,
         )
-    return returncode == expected_returncode
+    return returncode
 
 
 def check_tunnel_connection(func):
     def build_up_connection(*args, **kwargs):
         # check if ssh connection to the node is up
-        if not run_popen_cmd(
-            "tunnel", "check", "SSH tunnel check connection", **kwargs
+        if (
+            run_popen_cmd("tunnel", "check", "SSH tunnel check connection", **kwargs)
+            != 0
         ):
-            if not run_popen_cmd(
-                "tunnel",
-                "create",
-                "SSH tunnel create connection",
-                alert_admins=True,
-                max_attempts=3,
-                **kwargs,
+            if (
+                run_popen_cmd(
+                    "tunnel",
+                    "create",
+                    "SSH tunnel create connection",
+                    alert_admins=True,
+                    max_attempts=3,
+                    **kwargs,
+                )
+                != 0
             ):
                 raise SystemNotAvailableException(
                     f"uuidcode={kwargs['uuidcode']} - Could not connect to {kwargs['hostname']}"
@@ -199,37 +203,46 @@ def stop_tunnel(**kwargs):
 
 @check_tunnel_connection
 def start_tunnel(**kwargs):
-    return run_popen_cmd(
-        "tunnel",
-        "forward",
-        "SSH start tunnel",
-        alert_admins=True,
-        max_attempts=3,
-        **kwargs,
+    return (
+        run_popen_cmd(
+            "tunnel",
+            "forward",
+            "SSH start tunnel",
+            alert_admins=True,
+            max_attempts=3,
+            **kwargs,
+        )
+        == 0
     )
 
 
 def start_remote(**kwargs):
-    return run_popen_cmd(
-        "remote",
-        "start",
-        "SSH start remote",
-        alert_admins=True,
-        max_attempts=3,
-        expected_returncode=217,
-        **kwargs,
+    return (
+        run_popen_cmd(
+            "remote",
+            "start",
+            "SSH start remote",
+            alert_admins=True,
+            max_attempts=3,
+            expected_returncodes=[217],
+            **kwargs,
+        )
+        == 217
     )
 
 
 def status_remote(**kwargs):
-    return run_popen_cmd(
-        "remote",
-        "status",
-        "SSH status remote",
-        alert_admins=False,
-        max_attempts=1,
-        expected_returncode=217,
-        **kwargs,
+    return (
+        run_popen_cmd(
+            "remote",
+            "status",
+            "SSH status remote",
+            alert_admins=False,
+            max_attempts=1,
+            expected_returncodes=[217, 218],
+            **kwargs,
+        )
+        == 217
     )
 
 
@@ -240,6 +253,6 @@ def stop_remote(**kwargs):
         "SSH stop remote",
         alert_admins=True,
         max_attempts=3,
-        expected_returncode=218,
+        expected_returncodes=[218],
         **kwargs,
-    )
+    ) == 218

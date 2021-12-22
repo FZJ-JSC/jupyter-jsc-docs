@@ -36,14 +36,23 @@ class TunnelViewSet(viewsets.ModelViewSet):
                 "target_port": instance.target_port,
             }
         else:
-            kwargs = copy.deepcopy(self.request.data)
+            if type(self.request.data) != dict:
+                kwargs = {
+                    "backend_id": self.request.data["backend_id"],
+                    "hostname": self.request.data["hostname"],
+                    "target_node": self.request.data["target_node"],
+                    "target_port": self.request.data["target_port"],
+                }
+            else:
+                kwargs = copy.deepcopy(self.request.data)
         kwargs["uuidcode"] = self.request.query_params.get("uuidcode", "no-uuidcode")
         return kwargs
 
     @request_decorator
     def create(self, request, *args, **kwargs):
-        # add random open port to request
-        request.data["local_port"] = utils.get_random_open_local_port()
+        request_data = self.get_kwargs()
+        request_data["local_port"] = utils.get_random_open_local_port()
+        data = copy.deepcopy(request_data)
 
         # Manual check for uniqueness
         prev_model = self.queryset.filter(backend_id=request.data["backend_id"]).first()
@@ -52,12 +61,19 @@ class TunnelViewSet(viewsets.ModelViewSet):
 
         # start tunnel
         try:
-            if not utils.start_tunnel(**self.get_kwargs()):
+            if not utils.start_tunnel(**data):
                 return Response(status=utils.COULD_NOT_START_TUNNEL)
         except utils.SystemNotAvailableException:
             return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
 
-        return super().create(request, *args, **kwargs)
+        # super().create with different data
+        serializer = self.get_serializer(data=request_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     @request_decorator
     def retrieve(self, request, *args, **kwargs):
@@ -98,7 +114,12 @@ class RemoteViewSet(viewsets.ModelViewSet):
                 "updated_at": instance.updated_at,
             }
         elif data is None:
-            kwargs = copy.deepcopy(self.request.data)
+            if type(self.request.data) != dict:
+                kwargs = {
+                    "hostname": self.request.data["hostname"],
+                }
+            else:
+                kwargs = copy.deepcopy(self.request.data)
         else:
             kwargs = copy.deepcopy(data)
         kwargs["uuidcode"] = self.request.query_params.get("uuidcode", "no-uuidcode")
@@ -110,8 +131,11 @@ class RemoteViewSet(viewsets.ModelViewSet):
             running = utils.start_remote(**self.get_kwargs())
         except utils.SystemNotAvailableException:
             return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
+        hostname = request.data["hostname"]
+        if type(hostname) == list:
+            hostname = hostname[0]
         RemoteModel.objects.update_or_create(
-            hostname=request.data["hostname"], running=running
+            hostname=request.data["hostname"], defaults={"running": running}
         )
         return Response(data={"running": running}, status=status.HTTP_201_CREATED)
 
@@ -123,8 +147,10 @@ class RemoteViewSet(viewsets.ModelViewSet):
         except Http404 as e:
             kwargs = self.get_kwargs(data=kwargs)
         running = utils.status_remote(**kwargs)
+        print(running)
+        print("------")
         RemoteModel.objects.update_or_create(
-            hostname=kwargs["hostname"], running=running
+            hostname=kwargs["hostname"], defaults={"running": running}
         )
         return Response({"running": running})
 
@@ -135,6 +161,11 @@ class RemoteViewSet(viewsets.ModelViewSet):
             kwargs = self.get_kwargs(instance)
         except Http404 as e:
             kwargs = self.get_kwargs(data=kwargs)
+        print(kwargs)
         utils.stop_remote(**kwargs)
-        RemoteModel.objects.update_or_create(hostname=kwargs["hostname"], running=False)
+        print("Update")
+        RemoteModel.objects.update_or_create(
+            hostname=kwargs["hostname"], defaults={"running": False}
+        )
+        print("Updated")
         return Response()
