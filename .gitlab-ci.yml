@@ -48,7 +48,6 @@ unittest:
     - set -a; source ${CI_PROJECT_DIR}/tests/config/cicd/.envs ; set +a
     - mkdir -p /tmp/keys && mkdir -p /tmp/ssh_socket && echo "$TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY" >> /tmp/keys/tunnel && echo "$TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY" >> /tmp/keys/remote && chmod 400 /tmp/keys/tunnel && chmod 400 /tmp/keys/remote
     - pytest
-    - pytest -c ${CI_PROJECT_DIR}/pytest_cicd.ini
 
 kaniko-build:
   stage: build
