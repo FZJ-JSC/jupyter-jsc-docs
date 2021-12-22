@@ -6,8 +6,8 @@ from datetime import timedelta
 from rest_framework.response import Response
 
 from .settings import LOGGER_NAME
-from logs.helpers.handler_functions import create_logging_handler
-from logs.helpers.handler_functions import remove_logging_handler
+from logs.utils import create_logging_handler
+from logs.utils import remove_logging_handler
 
 log = logging.getLogger(LOGGER_NAME)
 
@@ -28,7 +28,7 @@ current_logger_configuration_mem = {}
 def request_decorator(func):
     def update_logging_handler(*args, **kwargs):
         global current_logger_configuration_mem
-        from logs.models.logs_models import HandlerModel
+        from logs.models import HandlerModel
 
         logger = logging.getLogger(LOGGER_NAME)
         active_handler = HandlerModel.objects.all()
@@ -43,7 +43,7 @@ def request_decorator(func):
             for name, configuration in active_handler_dict.items():
                 if configuration != current_logger_configuration_mem.get(name, {}):
                     remove_logging_handler(name)
-                    create_logging_handler(name, configuration)
+                    create_logging_handler(name, **configuration)
             current_logger_configuration_mem = copy.deepcopy(active_handler_dict)
         return func(*args, **kwargs)
 

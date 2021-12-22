@@ -1,10 +1,10 @@
 import logging
 import socket
-import time
 
 from django.urls import reverse
 
 from jupyterjsc_tunneling.settings import LOGGER_NAME
+from tests.user_credentials import UserCredentials
 from tunnel.models import TunnelModel
 
 
@@ -24,10 +24,7 @@ def netcat(host, port, content):
     return True
 
 
-from rest_framework.test import APITestCase
-
-
-class CICDTests(APITestCase):
+class CICDTests(UserCredentials):
     # At the moment we run this tests, remote tunneling will never work.
     # So if it's returning 218 (as expected for not running), we're happy for now
     remote_data = {"hostname": "demo_site"}

@@ -1,58 +1,17 @@
 import copy
 import logging
 
-from django.contrib.auth.models import Group
-from django.contrib.auth.models import User
 from django.urls import reverse
-from rest_framework.authtoken.models import Token
-from rest_framework.test import APITestCase
 
 from jupyterjsc_tunneling.settings import LOGGER_NAME
+from tests.user_credentials import UserCredentials
 
 
-class LogsUnitTest(APITestCase):
-    user_unauthorized_username = "unauthorized"
-    user_authorized_username = "authorized"
-    user_authorized = None
-    user_unauthorized = None
-    user_password = "12345"
-    authorized_group_jobs = "access_to_logging"
-    credentials_authorized = {}
-    credentials_unauthorized = {}
-    header = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
-
-    def create_user(self, username, passwd):
-        user = User.objects.create(username=username)
-        user.set_password(passwd)
-        user.save()
-        user.auth_token = Token.objects.create(user=user)
-        return user
-
-    def setUp(self):
-        self.user_authorized = self.create_user(
-            self.user_authorized_username, self.user_password
-        )
-        self.credentials_authorized = {
-            "HTTP_AUTHORIZATION": f"token {self.user_authorized.auth_token.key}"
-        }
-        self.user_unauthorized = self.create_user(
-            self.user_unauthorized_username, self.user_password
-        )
-        self.credentials_unauthorized = {
-            "HTTP_AUTHORIZATION": f"token {self.user_unauthorized.auth_token.key}"
-        }
-        group = Group.objects.create(name=self.authorized_group_jobs)
-        self.user_authorized.groups.add(group)
-        self.client.credentials(**self.credentials_authorized)
-        return super().setUp()
+class LogsUnitTest(UserCredentials):
 
     stream_config = {
         "handler": "stream",
         "configuration": {
-            "class": "logging.StreamHandler",
             "formatter": "simple",
             "level": 10,
             "stream": "ext://sys.stdout",

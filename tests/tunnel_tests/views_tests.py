@@ -2,7 +2,6 @@ import os
 from unittest import mock
 
 from django.urls import reverse
-from rest_framework.test import APITestCase
 
 from .mocks import mocked_popen_init
 from .mocks import mocked_popen_init_all_fail
@@ -11,11 +10,15 @@ from .mocks import mocked_popen_init_check_fail
 from .mocks import mocked_popen_init_forward_fail
 from .mocks import mocked_remote_popen_init
 from .mocks import mocked_remote_popen_init_218
+from tests.user_credentials import UserCredentials
 from tunnel.models import RemoteModel
 from tunnel.models import TunnelModel
 
 
-class RemoteViewTests(APITestCase):
+class RemoteViewTests(UserCredentials):
+    def setUp(self):
+        return super().setUp()
+
     remote_data = {"hostname": "demo_site"}
 
     @mock.patch(
@@ -98,7 +101,7 @@ class RemoteViewTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
 
 
-class TunnelViewTests(APITestCase):
+class TunnelViewTests(UserCredentials):
     tunnel_data = {
         "backend_id": 5,
         "hostname": "hostname",

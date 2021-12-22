@@ -17,8 +17,8 @@ from django.urls import include
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views.logs_view import HandlerViewSet
-from .views.logs_view import LogTestViewSet
+from .views import HandlerViewSet
+from .views import LogTestViewSet
 
 router = DefaultRouter()
 router.register("handler", HandlerViewSet, basename="handler")

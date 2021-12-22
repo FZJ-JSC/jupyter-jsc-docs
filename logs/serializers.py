@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ..models.logs_models import HandlerModel
+from .models import HandlerModel
 
 
 class HandlerSerializer(serializers.ModelSerializer):

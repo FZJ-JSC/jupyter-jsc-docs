@@ -1,13 +1,8 @@
 import logging
-import os
 
 from django.apps import AppConfig
 
 from jupyterjsc_tunneling.settings import LOGGER_NAME
-
-# from logs.helpers.handler_functions import check_database_updates
-
-# import multiprocessing
 
 
 class LogsConfig(AppConfig):

@@ -15,6 +15,7 @@ from .models import TunnelModel
 from .serializers import RemoteSerializer
 from .serializers import TunnelSerializer
 from jupyterjsc_tunneling.decorators import request_decorator
+from jupyterjsc_tunneling.permissions import HasGroupPermission
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 log = logging.getLogger(LOGGER_NAME)
@@ -25,6 +26,9 @@ class TunnelViewSet(viewsets.ModelViewSet):
     queryset = TunnelModel.objects.all()
 
     lookup_field = "backend_id"
+
+    permission_classes = [HasGroupPermission]
+    required_groups = ["access_to_webservice"]
 
     def get_kwargs(self, instance=None):
         if instance:
@@ -105,6 +109,9 @@ class RemoteViewSet(viewsets.ModelViewSet):
     queryset = RemoteModel.objects.all()
 
     lookup_field = "hostname"
+
+    permission_classes = [HasGroupPermission]
+    required_groups = ["access_to_webservice"]
 
     def get_kwargs(self, instance=None, data=None):
         if instance:

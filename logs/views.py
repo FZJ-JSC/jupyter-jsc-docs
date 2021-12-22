@@ -4,8 +4,8 @@ import logging
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from ..models.logs_models import HandlerModel
-from ..serializers.logs_serializer import HandlerSerializer
+from .models import HandlerModel
+from .serializers import HandlerSerializer
 from jupyterjsc_tunneling.decorators import request_decorator
 from jupyterjsc_tunneling.permissions import HasGroupPermission
 from jupyterjsc_tunneling.settings import LOGGER_NAME
