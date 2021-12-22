@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from rest_framework.response import Response
 
-from .logger import LOGGER_NAME
+from .settings import LOGGER_NAME
 from logs.helpers.handler_functions import create_logging_handler
 from logs.helpers.handler_functions import remove_logging_handler
 

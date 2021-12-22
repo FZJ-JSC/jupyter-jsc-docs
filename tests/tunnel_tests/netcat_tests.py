@@ -4,8 +4,8 @@ import time
 
 from django.urls import reverse
 
-from ..models import TunnelModel
-from common.logger import LOGGER_NAME
+from jupyterjsc_tunneling.settings import LOGGER_NAME
+from tunnel.models import TunnelModel
 
 
 def netcat(host, port, content):

@@ -1,40 +1,36 @@
 #!/bin/sh
 
-lsof -v &> /dev/null
-LSOF_EC=$?
-
-if [[ ! $LSOF_EC -eq 0 ]]; then
-    echo "lsof is not installed"
-    exit 255
+# Start ssh daemon
+if [ -z ${SSHD_LOG_PATH} ]; then
+    SSHD_LOG_PATH=/home/tunnel/sshd.log
 fi
+/usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
-/usr/sbin/sshd -f /etc/ssh/sshd_config -E /mnt/config/logs/sshd.log
-
-if [ "$DATABASE" = "postgres" ]; then
+# Database setup / wait for database
+if [ "$SQL_ENGINE" == "postgres" ]; then
     echo "Waiting for postgres..."
     while ! nc -z $SQL_HOST $SQL_PORT; do
       sleep 0.1
     done
     echo "PostgreSQL started"
+elif [[ -z ${SQL_DATABASE} ]]
+    
+    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py makemigrations"
+    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py migrate"
+    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
+    su tunnel -c "export TUNNELPASS=$(uuidgen) echo \"import os; from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@example.com', os.environ['TUNNELPASS'])\" | python manage.py shell ; echo \"Admin password: $TUNNELPASS\""
 fi
 
-if [[ -n ${1} ]]; then
-        echo "Use Arguments: ${@}"
-        WORKER=${1}
-fi
 if [[ -z $WORKER ]]; then
-        echo "Use 1"
+        echo "Use 1 worker (default)"
         WORKER=1
 fi
 
 # Requirement for psycopg2, even if it's not marked by psycopg2 as requirement
-export LD_PRELOAD=/lib/libssl.so.1.1
+# export LD_PRELOAD=/lib/libssl.so.1.1
 
-if [[ "$SQL_MIGRATE" -eq "1" ]]; then
-        su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py makemigrations"
-        su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py migrate"
+if [ -z ${UWSGI_PATH} ]; then
+    UWSGI_PATH=/home/tunnel/web/uwsgi.ini
 fi
 
-/usr/local/bin/python3 /home/tunnel/web/logging_receiver.py &
-
-su tunnel -c "uwsgi --ini /mnt/config/uwsgi.ini --processes ${WORKER}"
+su tunnel -c "uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}"

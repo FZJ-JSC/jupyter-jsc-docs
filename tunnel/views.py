@@ -14,8 +14,8 @@ from .models import RemoteModel
 from .models import TunnelModel
 from .serializers import RemoteSerializer
 from .serializers import TunnelSerializer
-from common.decorators import request_decorator
-from common.logger import LOGGER_NAME
+from jupyterjsc_tunneling.decorators import request_decorator
+from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 log = logging.getLogger(LOGGER_NAME)
 

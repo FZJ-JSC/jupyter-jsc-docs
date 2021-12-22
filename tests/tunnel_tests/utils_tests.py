@@ -5,12 +5,12 @@ from unittest import mock
 
 from rest_framework.test import APITestCase
 
-from .. import utils
 from .mocks import mocked_popen_init
 from .mocks import mocked_popen_init_all_fail
 from .mocks import mocked_popen_init_cancel_fail
 from .mocks import mocked_popen_init_check_fail
 from .mocks import TimedCacheClass
+from tunnel import utils
 
 
 class TunnelUtilsTests(APITestCase):

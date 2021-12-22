@@ -5,8 +5,8 @@ import os
 import socket
 import subprocess
 
-from common.decorators import TimedCacheProperty
-from common.logger import LOGGER_NAME
+from jupyterjsc_tunneling.decorators import TimedCacheProperty
+from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 
 log = logging.getLogger(LOGGER_NAME)

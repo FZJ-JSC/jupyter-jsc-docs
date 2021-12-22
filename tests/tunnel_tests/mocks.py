@@ -1,4 +1,4 @@
-from common.decorators import TimedCacheProperty
+from jupyterjsc_tunneling.decorators import TimedCacheProperty
 
 
 class TimedCacheClass:

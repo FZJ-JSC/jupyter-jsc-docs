@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from common.logger import LOGGER_NAME
+from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 
 class LogsUnitTest(APITestCase):

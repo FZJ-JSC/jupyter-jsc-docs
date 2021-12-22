@@ -6,9 +6,9 @@ from rest_framework.response import Response
 
 from ..models.logs_models import HandlerModel
 from ..serializers.logs_serializer import HandlerSerializer
-from common.decorators import request_decorator
-from common.logger import LOGGER_NAME
-from common.permissions import HasGroupPermission
+from jupyterjsc_tunneling.decorators import request_decorator
+from jupyterjsc_tunneling.permissions import HasGroupPermission
+from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 log = logging.getLogger(LOGGER_NAME)
 

@@ -8,7 +8,7 @@ import time
 from jsonformatter import JsonFormatter
 
 from .logging_classes import ExtraFormatter
-from common.logger import LOGGER_NAME
+from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 
 def get_level(level_str):

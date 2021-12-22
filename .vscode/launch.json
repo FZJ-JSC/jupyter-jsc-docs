@@ -5,7 +5,7 @@
             "name": "Python: Django",
             "type": "python",
             "request": "launch",
-            "envFile": "${workspaceFolder}/config/unit_tests/.envs",
+            "envFile": "${workspaceFolder}/tests/config/unit_tests/.envs",
             "program": "${workspaceFolder}/manage.py",
             "args": [
                 "runserver",

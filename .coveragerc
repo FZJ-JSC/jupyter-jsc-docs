@@ -1,9 +1,7 @@
 [run]
-source = tunnel,common
+source = tunnel
 omit = 
-   */*tests.py
-   */tests/*  
-   */migrations/*
+   tests/*/*tests.py
 
 [report]
 show_missing = True

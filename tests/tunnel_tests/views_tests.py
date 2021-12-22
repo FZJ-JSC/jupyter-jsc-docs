@@ -4,8 +4,6 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from ..models import RemoteModel
-from ..models import TunnelModel
 from .mocks import mocked_popen_init
 from .mocks import mocked_popen_init_all_fail
 from .mocks import mocked_popen_init_cancel_fail
@@ -13,6 +11,8 @@ from .mocks import mocked_popen_init_check_fail
 from .mocks import mocked_popen_init_forward_fail
 from .mocks import mocked_remote_popen_init
 from .mocks import mocked_remote_popen_init_218
+from tunnel.models import RemoteModel
+from tunnel.models import TunnelModel
 
 
 class RemoteViewTests(APITestCase):
