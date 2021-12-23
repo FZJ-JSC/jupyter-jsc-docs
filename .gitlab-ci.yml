@@ -72,12 +72,11 @@ functional-tests-in-k8s:
     - privileged
   # Optional: Manual gate
   when: manual
-  pre-script:
+  script:
     - kubectl config set-cluster k8s --server=$K8S_TEST_CLUSTER_SERVER
     - kubectl config set clusters.k8s.certificate-authority-data $K8S_TEST_CLUSTER_CA_AUTH_DATA
     - kubectl config set-credentials gitlab-service-account --token=$K8S_TEST_CLUSTER_USER_TOKEN
     - kubectl config set-context default --cluster=k8s --user=gitlab-service-account --namespace=gitlab
-  script:
     - sleep 1200
 
 kaniko-build-tag:
