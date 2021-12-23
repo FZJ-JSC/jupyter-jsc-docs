@@ -24,9 +24,9 @@ LOGGER_NAME = os.environ.get("LOGGER_NAME", "Tunnel")
 SECRET_KEY = os.environ.get("TUNNEL_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -76,6 +76,7 @@ WSGI_APPLICATION = "jupyterjsc_tunneling.wsgi.application"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.BasicAuthentication",
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
