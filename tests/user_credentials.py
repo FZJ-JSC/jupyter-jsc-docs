@@ -1,10 +1,34 @@
+from unittest import mock
+
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 
-class UserCredentials(APITestCase):
+def mocked_k8s_svc(*args, **kwargs):
+    return True
+
+
+class K8sMockedTestCase(APITestCase):
+    mock_patches = {}
+
+    def addMock(self, name, side_effect, object=None):
+        if object:
+            self.mock_patches[name] = mock.patch.object(
+                object, name, side_effect=side_effect
+            )
+        else:
+            self.mock_patches[name] = mock.patch(name, side_effect=side_effect)
+        self.mock_patches[name].start()
+        self.addCleanup(self.mock_patches[name].stop)
+
+    def setUp(self):
+        self.addMock("tunnel.utils.k8s_svc", mocked_k8s_svc)
+        return super().setUp()
+
+
+class UserCredentials(K8sMockedTestCase):
     user_unauthorized_username = "unauthorized"
     user_authorized_username = "authorized"
     user_authorized = None

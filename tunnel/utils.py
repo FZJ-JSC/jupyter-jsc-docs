@@ -5,6 +5,9 @@ import os
 import socket
 import subprocess
 
+from kubernetes import client
+from kubernetes import config
+
 from jupyterjsc_tunneling.decorators import TimedCacheProperty
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 
@@ -29,6 +32,13 @@ COULD_NOT_START_REMOTE = 552
 
 
 class CouldNotStartRemoteException(Exception):
+    pass
+
+
+K8S_ACTION_ERROR = 553
+
+
+class K8sActionException(Exception):
     pass
 
 
@@ -256,3 +266,94 @@ def stop_remote(**kwargs):
         expected_returncodes=[218],
         **kwargs,
     ) == 218
+
+
+import os
+from kubernetes import client, config
+
+
+def k8s_get_client():
+    config.load_incluster_config()
+    return client.CoreV1Api()
+
+
+def k8s_get_svc_name(backend_id):
+    return f"{os.environ.get('DEPLOYMENT_NAME', 'tunneling')}-{backend_id}"
+
+
+def k8s_get_svc_namespace():
+    return os.environ.get("DEPLOYMENT_NAMESPACE", "default")
+
+
+def k8s_create_svc(**kwargs):
+    v1 = k8s_get_client()
+    name = k8s_get_svc_name(kwargs["backend_id"])
+    namespace = k8s_get_svc_namespace()
+    service_manifest = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": {
+            "labels": {
+                "name": name,
+            },
+            "name": name,
+            "resourceversion": "v1",
+        },
+        "spec": {
+            "ports": [
+                {
+                    "name": "port",
+                    "port": kwargs["local_port"],
+                    "protocol": "TCP",
+                    "targetPort": kwargs["local_port"],
+                }
+            ],
+            "selector": {"name": name},
+        },
+    }
+    return v1.create_namespaced_service(
+        body=service_manifest, namespace=namespace
+    ).to_dict()
+
+
+# def k8s_get_svc(backend_id, **kwargs):
+#     v1 = k8s_get_client()
+#     name = k8s_get_svc_name(backend_id)
+#     namespace = k8s_get_svc_namespace()
+#     return v1.read_namespaced_service(name=name, namespace=namespace).to_dict()
+
+
+def k8s_delete_svc(**kwargs):
+    v1 = k8s_get_client()
+    name = k8s_get_svc_name(kwargs["backend_id"])
+    namespace = k8s_get_svc_namespace()
+    return v1.delete_namespaced_service(name=name, namespace=namespace).to_dict()
+
+
+k8s_log = {
+    "create": log.debug,
+    # "get": log.debug,
+    "delete": log.debug,
+}
+
+k8s_func = {
+    "create": k8s_create_svc,
+    # "get": k8s_get_svc,
+    "delete": k8s_delete_svc,
+}
+
+
+def k8s_svc(action, alert_admins=False, **kwargs):
+    log_extra = copy.deepcopy(kwargs)
+    k8s_log[action](f"Call K8s API to {action} svc ...", extra=log_extra)
+    try:
+        response = k8s_func[action](**kwargs)
+        log_extra["k8s_response"] = response
+    except Exception as e:
+        alert_admins_log[alert_admins](
+            f"Call K8s API to {action} svc failed", exc_info=True, extra=log_extra
+        )
+        raise K8sActionException(
+            f"uuidcode={log_extra.get('uuidcode', 'no-uuidcode')} - Call K8s API to {action} svc failed"
+        )
+    k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)

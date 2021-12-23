@@ -6,7 +6,6 @@ from django.http.response import Http404
 from rest_framework import status
 from rest_framework import utils
 from rest_framework import viewsets
-from rest_framework.request import Request
 from rest_framework.response import Response
 
 from . import utils
@@ -55,11 +54,13 @@ class TunnelViewSet(viewsets.ModelViewSet):
     @request_decorator
     def create(self, request, *args, **kwargs):
         request_data = self.get_kwargs()
+        log.debug("Tunnel Create", extra=request_data)
         request_data["local_port"] = utils.get_random_open_local_port()
         data = copy.deepcopy(request_data)
 
         # Manual check for uniqueness
-        prev_model = self.queryset.filter(backend_id=request.data["backend_id"]).first()
+        backend_id = request.data["backend_id"]
+        prev_model = self.queryset.filter(backend_id=backend_id).first()
         if prev_model is not None:
             self.perform_destroy(prev_model, log.warning)
 
@@ -69,6 +70,13 @@ class TunnelViewSet(viewsets.ModelViewSet):
                 return Response(status=utils.COULD_NOT_START_TUNNEL)
         except utils.SystemNotAvailableException:
             return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
+
+        # create k8s service
+        try:
+            utils.k8s_svc("create", alert_admins=True, **data)
+        except utils.K8sActionException:
+            utils.stop_tunnel(**data)
+            return Response(status=utils.K8S_ACTION_ERROR)
 
         # super().create with different data
         serializer = self.get_serializer(data=request_data)
@@ -81,6 +89,7 @@ class TunnelViewSet(viewsets.ModelViewSet):
 
     @request_decorator
     def retrieve(self, request, *args, **kwargs):
+        log.debug("Tunnel Retrieve", extra=kwargs)
         instance = self.get_object()
         data = {"running": True}
         if not utils.is_port_in_use(instance.local_port):
@@ -95,10 +104,15 @@ class TunnelViewSet(viewsets.ModelViewSet):
             utils.stop_tunnel(**kwargs)
         except:
             pass
+        try:
+            utils.k8s_svc("delete", alert_admins=False, **kwargs)
+        except:
+            pass
         return super().perform_destroy(instance)
 
     @request_decorator
     def destroy(self, request, *args, **kwargs):
+        log.debug("Tunnel Destroy", extra=kwargs)
         instance = self.get_object()
         self.perform_destroy(instance, log.info)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -134,8 +148,10 @@ class RemoteViewSet(viewsets.ModelViewSet):
 
     @request_decorator
     def create(self, request, *args, **kwargs):
+        kwargs = self.get_kwargs()
+        log.debug("Remote Create", extra=kwargs)
         try:
-            running = utils.start_remote(**self.get_kwargs())
+            running = utils.start_remote(**kwargs)
         except utils.SystemNotAvailableException:
             return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
         hostname = request.data["hostname"]
@@ -153,9 +169,8 @@ class RemoteViewSet(viewsets.ModelViewSet):
             kwargs = self.get_kwargs(instance)
         except Http404 as e:
             kwargs = self.get_kwargs(data=kwargs)
+        log.debug("Remote Retrieve", extra=kwargs)
         running = utils.status_remote(**kwargs)
-        print(running)
-        print("------")
         RemoteModel.objects.update_or_create(
             hostname=kwargs["hostname"], defaults={"running": running}
         )
@@ -168,11 +183,9 @@ class RemoteViewSet(viewsets.ModelViewSet):
             kwargs = self.get_kwargs(instance)
         except Http404 as e:
             kwargs = self.get_kwargs(data=kwargs)
-        print(kwargs)
+        log.debug("Remote Destroy", extra=kwargs)
         utils.stop_remote(**kwargs)
-        print("Update")
         RemoteModel.objects.update_or_create(
             hostname=kwargs["hostname"], defaults={"running": False}
         )
-        print("Updated")
         return Response()

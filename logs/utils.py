@@ -1,4 +1,4 @@
-import logging
+import logging.handlers
 import socket
 import sys
 
@@ -86,7 +86,6 @@ supported_formatter_kwargs = {
 def create_logging_handler(handler_name, **kwargs):
     formatter_name = kwargs.pop("formatter")
     level = get_level(kwargs.pop("level"))
-
     # catch some special cases
     if handler_name == "stream":
         if kwargs["stream"] == "ext://sys.stdout":
@@ -99,7 +98,6 @@ def create_logging_handler(handler_name, **kwargs):
         else:
             kwargs["socktype"] = socket.SOCK_DGRAM
         kwargs["address"] = tuple(kwargs["address"])
-
     # Create handler, formatter, and add it
     handler = supported_handler_classes[handler_name](**kwargs)
     formatter = supported_formatter_classes[formatter_name](
