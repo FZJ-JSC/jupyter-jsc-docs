@@ -78,9 +78,13 @@ functional-tests-in-k8s:
     - kubectl config set-context default --cluster=k8s --user=gitlab-service-account --namespace=gitlab
     - kubectl config use-context default
     - kubectl run tunneling-devel-${CI_COMMIT_SHORT_SHA} --image ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA} --env=DEPLOYMENT_NAME=tunneling-devel-${CI_COMMIT_SHORT_SHA} --env=DEPLOYMENT_NAMESPACE=gitlab --env=TUNNEL_SUPERUSER_PASS=${TUNNEL_SUPERUSER_PASS} --serviceaccount=tunneling-devel-svc-acc
-    - kubectl expose pod tunneling-devel-${CI_COMMIT_SHORT_SHA} --name=tunneling-devel-${CI_COMMIT_SHORT_SHA}-ssh --port=2222
     - kubectl expose pod tunneling-devel-${CI_COMMIT_SHORT_SHA} --name=tunneling-devel-${CI_COMMIT_SHORT_SHA} --port=8080
+    - kubectl expose pod tunneling-devel-${CI_COMMIT_SHORT_SHA} --name=tunneling-devel-${CI_COMMIT_SHORT_SHA}-ssh --port=2222
     - sleep 1200
+  after_script:
+    - kubectl delete svc tunneling-devel-${CI_COMMIT_SHORT_SHA}
+    - kubectl delete svc tunneling-devel-${CI_COMMIT_SHORT_SHA}-ssh
+    - kubectl delete pod tunneling-devel-${CI_COMMIT_SHORT_SHA}
 
 kaniko-build-tag:
   stage: build-tag
