@@ -68,8 +68,6 @@ functional-tests-in-k8s:
   image: 
     name: kubectl:latest
     entrypoint: [""]
-  tags:
-    - privileged
   # Optional: Manual gate
   when: manual
   pre-script:
