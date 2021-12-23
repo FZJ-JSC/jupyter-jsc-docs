@@ -81,6 +81,7 @@ functional-tests-in-k8s:
     - kubectl expose pod tunneling-devel-${CI_COMMIT_SHORT_SHA} --name=tunneling-devel-${CI_COMMIT_SHORT_SHA} --port=8080
     - kubectl expose pod tunneling-devel-${CI_COMMIT_SHORT_SHA} --name=tunneling-devel-${CI_COMMIT_SHORT_SHA}-ssh --port=2222
     - sleep 1200
+    - # Todo: Start unicore tsi, run functional tests for logger (check length of file), tunnel and remote. Check also for created k8s services for each tunnel
   after_script:
     - kubectl delete svc tunneling-devel-${CI_COMMIT_SHORT_SHA}
     - kubectl delete svc tunneling-devel-${CI_COMMIT_SHORT_SHA}-ssh
