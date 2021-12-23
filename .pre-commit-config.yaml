@@ -12,7 +12,6 @@ repos:
   hooks:
   - id: end-of-file-fixer
   - id: check-json
-  - id: check-yaml
   - id: check-case-conflict
   - id: check-executables-have-shebangs
   - id: requirements-txt-fixer

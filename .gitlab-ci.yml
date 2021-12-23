@@ -21,9 +21,6 @@
 
 
 stages:
-  - unittest
-  - build
-  - build-tag
   - functional-tests
 
 variables:
@@ -75,6 +72,9 @@ functional-tests-in-k8s:
     - kubectl config set clusters.k8s.certificate-authority-data $K8S_TEST_CLUSTER_CA_AUTH_DATA
     - kubectl config set-credentials gitlab-service-account --token=$K8S_TEST_CLUSTER_USER_TOKEN
     - kubectl config set-context default --cluster=k8s --user=gitlab-service-account --namespace=gitlab
+    - kubectl config use-context default
+    - kubectl apply -f $CI_PROJECT_DIR/tests/functional_tests/yaml
+    - TUNNEL_SUPERUSER_PASS=$(uuidgen) kubectl run tunneling-devel --image $CI_REGISTRY_IMAGE:35ecb4e2 --env=DEPLOYMENT_NAME=tunneling-devel --env=DEPLOYMENT_NAMESPACE=gitlab --serviceaccount=tunneling-devel-svc-acc
     - sleep 1200
 
 kaniko-build-tag:
