@@ -66,7 +66,7 @@ kaniko-build:
 functional-tests-in-k8s:
   stage: functional-tests
   image: 
-    name: kubectl:latest
+    name: bitnami/kubectl:1.20.14
     entrypoint: [""]
   # Optional: Manual gate
   when: manual
