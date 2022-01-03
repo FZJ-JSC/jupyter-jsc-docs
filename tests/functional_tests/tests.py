@@ -19,7 +19,7 @@ class FunctionalTests(unittest.TestCase):
     url = None
     headers = {
         "Content-Type": "application/json",
-        "Authentication": "Bearer YWRtaW46cGphZjE5MDQwMW9pYWY=",
+        "Authorization": "Basic YWRtaW46cGphZjE5MDQwMW9pYWY=",
     }
 
     def setUp(self):
@@ -130,15 +130,109 @@ class FunctionalTests(unittest.TestCase):
         self.v1.create_namespaced_service(
             body=self.get_svc_manifest(2222, suffix="-ssh"), namespace=self.namespace
         )
-        for _ in range(0, 20):
+        for _ in range(0, 40):
             try:
-                r = requests.get(url=f"{self.url}/health/")
+                r = requests.get(url=f"{self.url}/health/", timeout=2)
                 if r.status_code == 200:
                     break
-            except:
+            except (
+                requests.exceptions.ConnectTimeout,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.ReadTimeout,
+            ):
                 pass
             time.sleep(1)
 
-    def test_logger(self):
-        r = requests.get(url=f"{self.url}/logs/logtests", headers=self.headers)
+    def logtest(self):
+        logtest_url = f"{self.url}/logs/logtest/"
+        logs_1 = (
+            self.v1.read_namespaced_pod_log(name=self.name, namespace=self.namespace)
+            .strip()
+            .split("\n")
+        )
+        r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
+        self.assertEqual(r.status_code, 200, self.url)
+        logs_2 = (
+            self.v1.read_namespaced_pod_log(name=self.name, namespace=self.namespace)
+            .strip()
+            .split("\n")
+        )
+        return logs_1, logs_2
+
+    def test_health(self):
+        r = requests.get(url=f"{self.url}/health/", headers=self.headers, timeout=2)
+        self.assertEqual(r.status_code, 200, self.url)
+
+    def test_logger_stream(self):
+        handler_url = f"{self.url}/logs/handler/"
+        stream_url = f"{self.url}/logs/handler/stream/"
+        # Check that nothing's defined
+        r = requests.get(url=handler_url, headers=self.headers, timeout=2)
         self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), [])
+
+        # Test stdout with no logger defined
+        logs_1, logs_2 = self.logtest()
+        self.assertEqual(len(logs_1) + 4, len(logs_2))
+        self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
+
+        # Add Stream Logger
+        body = {
+            "handler": "stream",
+            "configuration": {
+                "formatter": "simple",
+                "level": 10,
+                "stream": "ext://sys.stdout",
+            },
+        }
+        r = requests.post(url=handler_url, json=body, headers=self.headers)
+        self.assertEqual(r.status_code, 201)
+
+        # Check that something's defined
+        r = requests.get(url=handler_url, headers=self.headers, timeout=2)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotEqual(r.json(), [])
+        r = requests.get(url=stream_url, headers=self.headers, timeout=2)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotEqual(r.json(), {})
+
+        # Test Stream Logger
+        logs_1, logs_2 = self.logtest()
+        self.assertEqual(len(logs_1) + 6, len(logs_2))
+        self.assertTrue(logs_2[-6].endswith("function=list : Debug"))
+
+        # Test ExtraFormatter suffix
+        self.assertTrue(logs_2[-6].endswith("function=list : Debug"))
+        self.assertTrue(
+            logs_2[-2].endswith(
+                "function=list : Critical --- Extra1=message1 --- mesg=msg1"
+            )
+        )
+
+        # Update Stream Logger Loglevel with POST
+        body["configuration"]["level"] = 5
+        r = requests.patch(url=stream_url, json=body, headers=self.headers)
+        self.assertEqual(r.status_code, 201)
+
+        # Test Stream Logger with TRACE
+        logs_1, logs_2 = self.logtest()
+        self.assertEqual(len(logs_1) + 7, len(logs_2))
+        self.assertTrue(logs_2[-7].endswith("function=list : Trace"))
+
+        # Update LogLevel to DEACTIVATE
+        body["configuration"]["level"] = "DEACTIVATE"
+        r = requests.patch(url=stream_url, json=body, headers=self.headers)
+        self.assertEqual(r.status_code, 201)
+
+        # Test Stream Logger with DEACTIVATE
+        logs_1, logs_2 = self.logtest()
+        self.assertEqual(len(logs_1) + 1, len(logs_2))
+
+        # TODO: Delete logger, test stdout log without logger again
+        r = requests.delete(url=stream_url, json=body, headers=self.headers)
+        self.assertEqual(r.status_code, 204)
+
+        # Test stdout with no logger defined
+        logs_1, logs_2 = self.logtest()
+        self.assertEqual(len(logs_1) + 4, len(logs_2))
+        self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
