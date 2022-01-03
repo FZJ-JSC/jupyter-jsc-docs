@@ -22,13 +22,13 @@ class FunctionalTests(unittest.TestCase):
         "Authorization": "Basic YWRtaW46cGphZjE5MDQwMW9pYWY=",
     }
 
-    def setUp(self):
+    def setUpClass(self):
         self.load_env()
         self.load_k8s_client()
         self.start_tunneling_pod_and_svcs()
         return super().setUp()
 
-    def tearDown(self):
+    def tearDownClass(self):
         self.delete_tunneling_pod_and_svcs()
         return super().tearDown()
 
