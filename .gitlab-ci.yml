@@ -79,7 +79,7 @@ functional-tests-in-k8s:
     - export CA_AUTH_PATH="/tmp/k8s_ca.crt"
     - echo -n "${K8S_TEST_CLUSTER_CA_AUTH_DATA}" | base64 -d > ${CA_AUTH_PATH}
   script:
-    - export NO_CI_COMMIT_SHORT_SHA=02371c4c
+    - export NO_CI_COMMIT_SHORT_SHA=30d9ef8a
     - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
 
 kaniko-build-tag:
