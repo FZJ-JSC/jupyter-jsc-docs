@@ -37,6 +37,7 @@ variables:
   K8S_TEST_CLUSTER_SERVER: $K8S_TEST_CLUSTER_SERVER
 
 unittest:
+  # when: never
   stage: unittest
   timeout: 20 minutes
   services:
@@ -52,9 +53,11 @@ unittest:
     - echo "Give UNICORE-TSI time to fully start"; sleep 10
     - set -a; source ${CI_PROJECT_DIR}/tests/config/cicd/.envs ; set +a
     - mkdir -p /tmp/keys && mkdir -p /tmp/ssh_socket && echo "$TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY" >> /tmp/keys/tunnel && echo "$TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY" >> /tmp/keys/remote && chmod 400 /tmp/keys/tunnel && chmod 400 /tmp/keys/remote
-    - pytest
+    - pytest -c ${CI_PROJECT_DIR}/tests/logs_tests/pytest.ini
+    - pytest -c ${CI_PROJECT_DIR}/tests/tunnel_tests/pytest.ini
 
 kaniko-build:
+  # when: never
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -67,25 +70,16 @@ kaniko-build:
 functional-tests-in-k8s:
   stage: functional-tests
   image: 
-    name: bitnami/kubectl:1.20.14
+    name: python:slim-3.9.9
     entrypoint: [""]
   # Optional: Manual gate
   when: manual
+  before_script:
+    - pip install -r ${CI_PROJECT_DIR}/tests/functional_tests/requirements.txt
+    - export CA_AUTH_PATH="/tmp/k8s_ca.crt"
+    - echo -n "${K8S_TEST_CLUSTER_CA_AUTH_DATA}" | base64 -d > ${CA_AUTH_PATH}
   script:
-    - kubectl config set-cluster k8s --server=$K8S_TEST_CLUSTER_SERVER
-    - kubectl config set clusters.k8s.certificate-authority-data $K8S_TEST_CLUSTER_CA_AUTH_DATA
-    - kubectl config set-credentials gitlab-service-account --token=$K8S_TEST_CLUSTER_USER_TOKEN
-    - kubectl config set-context default --cluster=k8s --user=gitlab-service-account --namespace=gitlab
-    - kubectl config use-context default
-    - kubectl run tunneling-devel-${CI_COMMIT_SHORT_SHA} --image ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA} --env=DEPLOYMENT_NAME=tunneling-devel-${CI_COMMIT_SHORT_SHA} --env=DEPLOYMENT_NAMESPACE=gitlab --env=TUNNEL_SUPERUSER_PASS=${TUNNEL_SUPERUSER_PASS} --serviceaccount=tunneling-devel-svc-acc
-    - kubectl expose pod tunneling-devel-${CI_COMMIT_SHORT_SHA} --name=tunneling-devel-${CI_COMMIT_SHORT_SHA} --port=8080
-    - kubectl expose pod tunneling-devel-${CI_COMMIT_SHORT_SHA} --name=tunneling-devel-${CI_COMMIT_SHORT_SHA}-ssh --port=2222
-    - sleep 1200
-# Todo: Start unicore tsi, run functional tests for logger (check length of file), tunnel and remote. Check also for created k8s services for each tunnel
-  after_script:
-    - kubectl delete svc tunneling-devel-${CI_COMMIT_SHORT_SHA}
-    - kubectl delete svc tunneling-devel-${CI_COMMIT_SHORT_SHA}-ssh
-    - kubectl delete pod tunneling-devel-${CI_COMMIT_SHORT_SHA}
+    - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
 
 kaniko-build-tag:
   stage: build-tag
