@@ -130,6 +130,14 @@ class FunctionalTests(unittest.TestCase):
         self.v1.create_namespaced_service(
             body=self.get_svc_manifest(2222, suffix="-ssh"), namespace=self.namespace
         )
+        for _ in range(0, 20):
+            try:
+                r = requests.get(url=f"{self.url}/health/")
+                if r.status_code == 200:
+                    break
+            except:
+                pass
+            time.sleep(1)
 
     def test_logger(self):
         r = requests.get(url=f"{self.url}/logs/logtests", headers=self.headers)
