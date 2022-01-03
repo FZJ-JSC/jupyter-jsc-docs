@@ -55,7 +55,7 @@ def get_level(level_str):
         return logging._nameToLevel[level_str.upper()]
     elif level_str.upper() == "TRACE":
         return 5
-    elif level_str.upper().startswith() == "DEACTIVATE":
+    elif level_str.upper().startswith("DEACTIVATE"):
         return 99
     else:
         try:
