@@ -37,7 +37,7 @@ variables:
   K8S_TEST_CLUSTER_SERVER: $K8S_TEST_CLUSTER_SERVER
 
 unittest:
-  # when: never
+  when: never
   stage: unittest
   timeout: 20 minutes
   services:
@@ -57,7 +57,7 @@ unittest:
     - pytest -c ${CI_PROJECT_DIR}/tests/tunnel_tests/pytest.ini
 
 kaniko-build:
-  # when: never
+  when: never
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -70,7 +70,7 @@ kaniko-build:
 functional-tests-in-k8s:
   stage: functional-tests
   image: 
-    name: python:slim-3.9.9
+    name: python:3.9.9-slim
     entrypoint: [""]
   # Optional: Manual gate
   when: manual
@@ -79,6 +79,7 @@ functional-tests-in-k8s:
     - export CA_AUTH_PATH="/tmp/k8s_ca.crt"
     - echo -n "${K8S_TEST_CLUSTER_CA_AUTH_DATA}" | base64 -d > ${CA_AUTH_PATH}
   script:
+    - export CI_COMMIT_TAG=02371c4c
     - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
 
 kaniko-build-tag:
