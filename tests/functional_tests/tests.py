@@ -283,13 +283,15 @@ class FunctionalTests(unittest.TestCase):
 
         # delete demo site remote tunnel
         r = requests.delete(url=demo_site_url, headers=self.headers)
-        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json(), {"running": False})
 
         # retrieve demo site remote tunnel
         r = requests.get(url=demo_site_url, headers=self.headers)
-        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {"running": False})
 
+        # Remote Tunnel connection and db entry will stay (intended behaviour)
         r = requests.get(url=remote_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json(), [])
+        self.assertNotEqual(r.json(), [])
