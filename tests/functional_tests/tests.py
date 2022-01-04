@@ -284,7 +284,6 @@ class FunctionalTests(unittest.TestCase):
         # delete demo site remote tunnel
         r = requests.delete(url=demo_site_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json(), {"running": False})
 
         # retrieve demo site remote tunnel
         r = requests.get(url=demo_site_url, headers=self.headers)
