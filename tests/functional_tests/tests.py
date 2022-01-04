@@ -66,7 +66,7 @@ class FunctionalTests(unittest.TestCase):
         v1 = load_k8s_client(k8s_host, k8s_user_token, k8s_ca_auth_path)
         tsi_version = os.environ.get("UNICORE_TSI_VERSION")
         tsi_image = f"registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/unicore-test-server/unicore-tsi-slurm:{tsi_version}"
-        tsi_name = "unicore-test-tsi"
+        tsi_name = f"unicore-test-tsi-{suffix}"
         start_unicore_tsi_pod_and_svcs(
             v1, tsi_name, namespace, tsi_image, f"{name}-ssh"
         )
@@ -129,7 +129,7 @@ class FunctionalTests(unittest.TestCase):
         ) = load_env()
         v1 = load_k8s_client(k8s_host, k8s_user_token, k8s_ca_auth_path)
         delete_tunneling_pod_and_svcs(v1, name, namespace)
-        tsi_name = "unicore-test-tsi"
+        tsi_name = f"unicore-test-tsi-{suffix}"
         delete_unicore_tsi_pod_and_svcs(v1, tsi_name, namespace)
 
     def logtest_stream(self):
