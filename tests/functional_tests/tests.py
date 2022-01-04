@@ -260,6 +260,36 @@ class FunctionalTests(unittest.TestCase):
     def test_remote_tunnel(self):
         # Get status of ssh remote tunnel
         remote_url = f"{self.url}/remote/"
+        demo_site_url = f"{remote_url}demo_site/"
+        r = requests.get(url=remote_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), [])
+
+        # Start remote tunnel
+        body = {"hostname": "demo_site"}
+        r = requests.post(url=demo_site_url, headers=self.headers, json=body)
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.json(), {"running": True})
+
+        # list all remote tunnel
+        r = requests.get(url=remote_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotEqual(r.json(), [])
+
+        # retrieve demo site remote tunnel
+        r = requests.get(url=demo_site_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {"running": True})
+
+        # delete demo site remote tunnel
+        r = requests.delete(url=demo_site_url, headers=self.headers)
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.json(), {"running": False})
+
+        # retrieve demo site remote tunnel
+        r = requests.get(url=demo_site_url, headers=self.headers)
+        self.assertEqual(r.status_code, 404)
+
         r = requests.get(url=remote_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json(), [])
