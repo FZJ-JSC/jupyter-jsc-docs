@@ -267,7 +267,7 @@ class FunctionalTests(unittest.TestCase):
 
         # Start remote tunnel
         body = {"hostname": "demo_site"}
-        r = requests.post(url=demo_site_url, headers=self.headers, json=body)
+        r = requests.post(url=remote_url, headers=self.headers, json=body)
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.json(), {"running": True})
 
