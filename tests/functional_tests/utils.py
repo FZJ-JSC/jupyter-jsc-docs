@@ -264,5 +264,5 @@ def start_unicore_tsi_pod_and_svcs(v1, name, namespace, image, tunnel_ssh_svc):
 
 
 def delete_unicore_tsi_pod_and_svcs(v1, name, namespace):
-    v1.delete_namespaced_service(name=name, namespace=namespace)
-    v1.delete_namespaced_pod(name=f"{name}-ssh", namespace=namespace)
+    v1.delete_namespaced_service(name=f"{name}-ssh", namespace=namespace)
+    v1.delete_namespaced_pod(name=name, namespace=namespace)
