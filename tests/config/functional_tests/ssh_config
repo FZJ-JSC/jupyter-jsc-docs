@@ -1,0 +1,19 @@
+Host *
+    ServerAliveInterval 60
+    ServerAliveCountMax 5
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    User ljupyter
+    ControlMaster auto
+    ControlPersist 0
+    Port 2223
+
+Host tunnel_demo_site
+    HostName unicore-test-tsi-ssh
+    IdentityFile /tmp/keys/tunnel
+    ControlPath /tmp/ssh_socket/tunnel_demo_site
+
+Host remote_demo_site
+    HostName unicore-test-tsi-ssh
+    IdentityFile /tmp/keys/remote
+    ControlPath /tmp/ssh_socket/remote_demo_site
