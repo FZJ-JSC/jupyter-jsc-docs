@@ -10,10 +10,10 @@ Host *
 
 Host tunnel_demo_site
     HostName unicore-test-tsi-ssh
-    IdentityFile /tmp/keys/tunnel
-    ControlPath /tmp/ssh_socket/tunnel_demo_site
+    IdentityFile /tmp/tunnel
+    ControlPath /tmp/tunnel_demo_site
 
 Host remote_demo_site
     HostName unicore-test-tsi-ssh
-    IdentityFile /tmp/keys/remote
-    ControlPath /tmp/ssh_socket/remote_demo_site
+    IdentityFile /tmp/remote
+    ControlPath /tmp/remote_demo_site
