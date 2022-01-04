@@ -37,7 +37,7 @@ variables:
   K8S_TEST_CLUSTER_SERVER: $K8S_TEST_CLUSTER_SERVER
 
 unittest:
-  when: manual
+  # when: manual
   stage: unittest
   timeout: 20 minutes
   services:
@@ -57,7 +57,7 @@ unittest:
     - pytest -c ${CI_PROJECT_DIR}/tests/tunnel_tests/pytest.ini
 
 kaniko-build:
-  when: manual
+  # when: manual
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
