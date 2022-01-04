@@ -8,7 +8,6 @@
 keys
 ssh_socket
 venv
-tests
 README.md
 LICENSE
 .dockerignore
