@@ -68,7 +68,27 @@ def delete_tunneling_pod_and_svcs(v1, name, namespace):
     v1.delete_namespaced_pod(name=name, namespace=namespace)
 
 
-def start_tunneling_pod_and_svcs(v1, name, namespace, image):
+def start_tunneling_pod_and_svcs(v1, name, namespace, image, additional_envs=[]):
+    env = [
+        {
+            "name": "DEPLOYMENT_NAME",
+            "value": name,
+        },
+        {
+            "name": "DEPLOYMENT_NAMESPACE",
+            "value": namespace,
+        },
+        {
+            "name": "TUNNEL_SUPERUSER_PASS",
+            "value": os.environ.get("TUNNEL_SUPERUSER_PASS"),
+        },
+        {
+            "name": "SSHCONFIGFILE",
+            "value": "/tmp/ssh_config",
+        },
+    ]
+    if additional_envs:
+        env.extend(additional_envs)
     pod_manifest = {
         "apiVersion": "v1",
         "kind": "Pod",
@@ -85,24 +105,7 @@ def start_tunneling_pod_and_svcs(v1, name, namespace, image):
                     "image": image,
                     "imagePullPolicy": "Always",
                     "name": name,
-                    "env": [
-                        {
-                            "name": "DEPLOYMENT_NAME",
-                            "value": name,
-                        },
-                        {
-                            "name": "DEPLOYMENT_NAMESPACE",
-                            "value": namespace,
-                        },
-                        {
-                            "name": "TUNNEL_SUPERUSER_PASS",
-                            "value": os.environ.get("TUNNEL_SUPERUSER_PASS"),
-                        },
-                        {
-                            "name": "SSHCONFIGFILE",
-                            "value": "/tmp/ssh_config",
-                        },
-                    ],
+                    "env": env,
                 }
             ],
             "serviceAccount": "tunneling-devel-svc-acc",
