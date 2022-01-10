@@ -371,7 +371,7 @@ class FunctionalTests(unittest.TestCase):
         # Try to start another one for the same backend_id.
         # Expected behaviour: Delete previous tunnel, start new one
         r = requests.post(tunnel_url, headers=self.headers, json=tunnel_data)
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 201)
         resp_post_2 = r.json()
         check_post_resp(resp_post_2, tunnel_data)
 
