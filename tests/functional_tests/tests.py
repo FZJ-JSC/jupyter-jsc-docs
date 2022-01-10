@@ -439,3 +439,52 @@ class FunctionalTests(unittest.TestCase):
         # Delete tunnels
         self.delete_tunnel(tunnel_url, 5, resp_post_2["local_port"])
         self.delete_tunnel(tunnel_url, 6, resp_post_3["local_port"])
+
+    def test_tunnel_with_preexisting_tunnels_in_db(self):
+        return
+        tunnel_url = f"{self.url}/tunnel/"
+        resp_post_2 = {
+            "backend_id": 5,
+            "hostname": "demo_site",
+            "target_node": "targetnode",
+            "target_port": 34567,
+            "local_port": 55893,
+        }
+        resp_post_3 = copy.deepcopy(resp_post_2)
+        resp_post_3["local_port"] = 51950
+
+        # Test if everything what should be running is running
+        additional_envs = [
+            {
+                "name": "SQL_DATABASE",
+                "value": "tests/functional_tests/db.sqlite3.two_running_tunnels",
+            }
+        ]
+        start_tunneling_pod_and_svcs(
+            self.v1,
+            f"{self.name}-pre-tunnel",
+            self.namespace,
+            self.image,
+            additional_envs=additional_envs,
+        )
+        url = f"http://{self.name}:8080/api"
+        wait_for_tunneling_svc(url)
+        import time
+
+        time.sleep(5)
+
+        # Verify that both are running
+        r = requests.get(tunnel_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        resp_get = r.json()
+        self.assertNotEqual(resp_get, [])
+        self.assertEqual(resp_get[0], resp_post_2)
+        self.assertEqual(resp_get[1], resp_post_3)
+        is_listening_2 = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, resp_post_2["local_port"]
+        )
+        is_listening_3 = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, resp_post_3["local_port"]
+        )
+        self.assertTrue(is_listening_2)
+        self.assertTrue(is_listening_3)
