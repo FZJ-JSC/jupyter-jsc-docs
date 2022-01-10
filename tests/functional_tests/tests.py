@@ -5,6 +5,7 @@ import os
 import unittest
 
 import requests
+from kubernetes import client
 from parameterized import parameterized
 from utils import add_test_files_to_tunneling
 from utils import check_if_port_is_listening
@@ -302,3 +303,137 @@ class FunctionalTests(unittest.TestCase):
         r = requests.get(url=remote_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
         self.assertNotEqual(r.json(), [])
+
+    def delete_tunnel(self, tunnel_url, backend_id, local_port):
+        tunnel_i_url = f"{tunnel_url}{backend_id}/"
+        # Delete tunnels
+        r = requests.delete(tunnel_i_url, headers=self.headers)
+        self.assertEqual(r.status_code, 204)
+
+        # try to retrieve information again
+        r = requests.get(tunnel_i_url, headers=self.headers)
+        self.assertEqual(r.status_code, 404)
+        is_listening = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, local_port
+        )
+        self.assertFalse(is_listening)
+        with self.assertRaises(client.exceptions.ApiException) as context:
+            svc = self.v1.read_namespaced_service(
+                name=f"{self.name}-{backend_id}", namespace=self.namespace
+            ).to_dict()
+
+    def test_tunnel(self):
+        def check_post_resp(resp_data, tunnel_data):
+            self.assertEqual(resp_data["backend_id"], tunnel_data["backend_id"])
+            self.assertEqual(resp_data["hostname"], tunnel_data["hostname"])
+            self.assertEqual(resp_data["target_node"], tunnel_data["target_node"])
+            self.assertEqual(resp_data["target_port"], tunnel_data["target_port"])
+            self.assertEqual(type(resp_data["local_port"]), int)
+
+        tunnel_url = f"{self.url}/tunnel/"
+
+        # Verify that nothing's running
+        r = requests.get(tunnel_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), [])
+
+        # Start tunnel
+        tunnel_data = {
+            "backend_id": 5,
+            "hostname": "demo_site",
+            "target_node": "targetnode",
+            "target_port": 34567,
+        }
+        r = requests.post(tunnel_url, headers=self.headers, json=tunnel_data)
+        self.assertEqual(r.status_code, 201)
+        resp_post = r.json()
+        check_post_resp(resp_post, tunnel_data)
+
+        # If it does not exists, an exception is thrown
+        svc_1 = self.v1.read_namespaced_service(
+            name=f"{self.name}-{tunnel_data['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        self.assertEqual(svc_1["spec"]["ports"][0]["port"], resp_post["local_port"])
+
+        # Verify that something's running
+        r = requests.get(tunnel_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        resp_get = r.json()
+        self.assertNotEqual(resp_get, [])
+        self.assertEqual(resp_get[0], resp_post)
+        is_listening = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, resp_post["local_port"]
+        )
+        self.assertTrue(is_listening)
+
+        # Try to start another one for the same backend_id.
+        # Expected behaviour: Delete previous tunnel, start new one
+        r = requests.post(tunnel_url, headers=self.headers, json=tunnel_data)
+        self.assertEqual(r.status_code, 200)
+        resp_post_2 = r.json()
+        check_post_resp(resp_post_2, tunnel_data)
+
+        # Verify that new tunnel config's running
+        r = requests.get(tunnel_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        resp_get = r.json()
+        self.assertNotEqual(resp_get, [])
+        self.assertEqual(resp_get[0], resp_post_2)
+        is_listening_1 = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, resp_post["local_port"]
+        )
+        is_listening_2 = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, resp_post_2["local_port"]
+        )
+        self.assertFalse(is_listening_1)
+        self.assertTrue(is_listening_2)
+
+        # If it does not exists, an exception is thrown
+        svc_2 = self.v1.read_namespaced_service(
+            name=f"{self.name}-{tunnel_data['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        self.assertEqual(svc_2["spec"]["ports"][0]["port"], resp_post_2["local_port"])
+
+        # Start a second tunnel
+        tunnel_data["backend_id"] = 6
+        tunnel_data["target_port"] = 34568
+        tunnel_data["target_node"] = "targetnode2"
+        r = requests.post(tunnel_url, headers=self.headers, json=tunnel_data)
+        self.assertEqual(r.status_code, 201)
+        resp_post_3 = r.json()
+        check_post_resp(resp_post_3, tunnel_data)
+
+        # If it does not exists, an exception is thrown
+        svc_2 = self.v1.read_namespaced_service(
+            name=f"{self.name}-{resp_post_2['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        svc_3 = self.v1.read_namespaced_service(
+            name=f"{self.name}-{tunnel_data['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        self.assertEqual(svc_2["spec"]["ports"][0]["port"], resp_post_2["local_port"])
+        self.assertEqual(svc_3["spec"]["ports"][0]["port"], resp_post_3["local_port"])
+
+        # Verify that both are running
+        r = requests.get(tunnel_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        resp_get = r.json()
+        self.assertNotEqual(resp_get, [])
+        self.assertEqual(resp_get[0], resp_post_2)
+        self.assertEqual(resp_get[1], resp_post_3)
+        is_listening_2 = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, resp_post_2["local_port"]
+        )
+        is_listening_3 = check_if_port_is_listening(
+            self.v1, self.name, self.namespace, resp_post_3["local_port"]
+        )
+        self.assertTrue(is_listening_2)
+        self.assertTrue(is_listening_3)
+
+        # Retrieve information about a tunnel
+        r = requests.get(f"{tunnel_url}5/", headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {"running": True})
+
+        # Delete tunnels
+        self.delete_tunnel(tunnel_url, 5, resp_post_2["local_port"])
+        self.delete_tunnel(tunnel_url, 6, resp_post_3["local_port"])
