@@ -7,12 +7,11 @@ from kubernetes.stream import stream
 
 
 def load_env():
-    suffix = os.environ.get("FUNCTIONAL_TEST_TAG", "")
+    suffix = os.environ.get("CI_COMMIT_SHORT_SHA", "")
+    imagetag = os.environ.get("FUNCTIONAL_TEST_TAG", "")
     name = f"tunneling-devel-{suffix}"
     namespace = "gitlab"
-    image = (
-        f"registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/tunneling-relaunch:{suffix}"
-    )
+    image = f"registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/tunneling-relaunch:{imagetag}"
     k8s_host = os.environ.get("K8S_TEST_CLUSTER_SERVER", "")
     k8s_user_token = os.environ.get("K8S_TEST_CLUSTER_USER_TOKEN", "")
     k8s_ca_auth_path = os.environ.get("CA_AUTH_PATH")

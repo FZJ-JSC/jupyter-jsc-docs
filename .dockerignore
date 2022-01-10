@@ -11,6 +11,7 @@ venv
 README.md
 LICENSE
 .dockerignore
+tests
 Dockerfile
 db.sqlite3*
 build-requirements.txt
