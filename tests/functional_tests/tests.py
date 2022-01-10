@@ -441,39 +441,42 @@ class FunctionalTests(unittest.TestCase):
         self.delete_tunnel(tunnel_url, 6, resp_post_3["local_port"])
 
     def test_tunnel_with_preexisting_tunnels_in_db(self):
-        return
-        tunnel_url = f"{self.url}/tunnel/"
+        name = f"{self.name}-pre-tunnel"
+        url = f"http://{name}:8080/api"
+        tunnel_url = f"{url}/tunnel/"
         resp_post_2 = {
             "backend_id": 5,
             "hostname": "demo_site",
             "target_node": "targetnode",
             "target_port": 34567,
-            "local_port": 55893,
+            "local_port": 51759,
         }
-        resp_post_3 = copy.deepcopy(resp_post_2)
-        resp_post_3["local_port"] = 51950
+        resp_post_3 = {
+            "backend_id": 6,
+            "hostname": "demo_site",
+            "target_node": "targetnode2",
+            "target_port": 34568,
+            "local_port": 57907,
+        }
 
-        # Test if everything what should be running is running
+        # Start tunnel service with prefilled database
         additional_envs = [
             {
                 "name": "SQL_DATABASE",
                 "value": "tests/functional_tests/db.sqlite3.two_running_tunnels",
             }
         ]
+
         start_tunneling_pod_and_svcs(
             self.v1,
-            f"{self.name}-pre-tunnel",
+            name,
             self.namespace,
             self.image,
             additional_envs=additional_envs,
         )
-        url = f"http://{self.name}:8080/api"
         wait_for_tunneling_svc(url)
-        import time
 
-        time.sleep(5)
-
-        # Verify that both are running
+        # Verify that both predefined tunnels are running
         r = requests.get(tunnel_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
         resp_get = r.json()
@@ -488,3 +491,6 @@ class FunctionalTests(unittest.TestCase):
         )
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
+
+    def pass_test_remote_with_preexisting_db_entry(self):
+        pass

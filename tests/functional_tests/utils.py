@@ -86,6 +86,10 @@ def start_tunneling_pod_and_svcs(v1, name, namespace, image, additional_envs=[])
             "name": "SSHCONFIGFILE",
             "value": "/tmp/ssh_config",
         },
+        {
+            "name": "DEBUG",
+            "value": "true",
+        },
     ]
     if additional_envs:
         env.extend(additional_envs)

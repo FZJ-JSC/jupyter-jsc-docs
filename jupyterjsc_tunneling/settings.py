@@ -24,7 +24,7 @@ LOGGER_NAME = os.environ.get("LOGGER_NAME", "Tunnel")
 SECRET_KEY = os.environ.get("TUNNEL_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = ["*"]
 
