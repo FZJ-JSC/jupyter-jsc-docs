@@ -449,14 +449,14 @@ class FunctionalTests(unittest.TestCase):
             "hostname": "demo_site",
             "target_node": "targetnode",
             "target_port": 34567,
-            "local_port": 60639,
+            "local_port": 51759,
         }
         resp_post_3 = {
             "backend_id": 6,
             "hostname": "demo_site",
             "target_node": "targetnode2",
             "target_port": 34568,
-            "local_port": 59199,
+            "local_port": 57907,
         }
 
         # Start tunnel service with prefilled database
@@ -491,3 +491,6 @@ class FunctionalTests(unittest.TestCase):
         )
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
+
+    def pass_test_remote_with_preexisting_db_entry(self):
+        pass
