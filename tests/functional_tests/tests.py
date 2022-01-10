@@ -137,6 +137,12 @@ class FunctionalTests(unittest.TestCase):
         tsi_name = f"unicore-test-tsi-{suffix}"
         delete_unicore_tsi_pod_and_svcs(v1, tsi_name, namespace)
 
+        # Delete pre-tunnel pods and svcs, if test failed it's still running
+        try:
+            delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
+        except:
+            pass
+
     def logtest_stream(self):
         logtest_url = f"{self.url}/logs/logtest/"
         logs_1 = (
@@ -493,6 +499,7 @@ class FunctionalTests(unittest.TestCase):
         )
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
+        delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
 
     def skip_test_remote_with_preexisting_db_entry(self):
         pass
