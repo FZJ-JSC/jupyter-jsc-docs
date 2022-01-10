@@ -53,3 +53,4 @@ class LogsConfig(AppConfig):
 
     def ready(self):
         self.start_logger()
+        return super().ready()
