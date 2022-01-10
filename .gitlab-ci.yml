@@ -27,6 +27,8 @@ stages:
   - functional-tests
 
 variables:
+  BUILD_NEW_VERSION: "False"
+  RC_VERSION: "1.0.0-rc1"
   UNICORE_TSI_VERSION: "8.2.1-ljupyter-1.6"
   TUNNEL_SECRET_KEY: $TUNNEL_SECRET_KEY
   TUNNEL_SUPERUSER_PASS: $TUNNEL_SUPERUSER_PASS
@@ -38,7 +40,6 @@ variables:
   K8S_TEST_CLUSTER_SERVER: $K8S_TEST_CLUSTER_SERVER
 
 unittest:
-  when: manual
   stage: unittest
   timeout: 20 minutes
   services:
@@ -56,9 +57,11 @@ unittest:
     - mkdir -p /tmp/keys && mkdir -p /tmp/ssh_socket && echo "$TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY" >> /tmp/keys/tunnel && echo "$TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY" >> /tmp/keys/remote && chmod 400 /tmp/keys/tunnel && chmod 400 /tmp/keys/remote
     - pytest -c ${CI_PROJECT_DIR}/tests/logs_tests/pytest.ini
     - pytest -c ${CI_PROJECT_DIR}/tests/tunnel_tests/pytest.ini
+  rules:
+    - if: $BUILD_NEW_VERSION == "True"
+      when: always 
 
 kaniko-build:
-  when: manual
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -67,20 +70,21 @@ kaniko-build:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+  rules:
+    - if: $BUILD_NEW_VERSION == "True"
+      when: always 
 
 functional-tests-in-k8s:
   stage: functional-tests
   image: 
     name: python:3.9.9-slim
     entrypoint: [""]
-  # Optional: Manual gate
-  # when: manual
   before_script:
     - pip install -r ${CI_PROJECT_DIR}/tests/functional_tests/requirements.txt
     - export CA_AUTH_PATH="/tmp/k8s_ca.crt"
     - echo -n "${K8S_TEST_CLUSTER_CA_AUTH_DATA}" | base64 -d > ${CA_AUTH_PATH}
   script:
-    - export CI_COMMIT_SHORT_SHA="06cbf4e0"
+    - if [[ $BUILD_NEW_VERSION == "True" ]]; then export FTTAG=$CI_COMMIT_SHORT_SHA; elif [[ -n $RC_VERSION ]]; then export FTTAG=$RC_VERSION; else exit 1; fi
     - export FUNCTIONAL_TESTS_SSH_CONFIG=$(sed -e "s/SUFFIX/${CI_COMMIT_SHORT_SHA}/g" tests/config/functional_tests/ssh_config | base64 -w 0)
     - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
 
