@@ -1,8 +1,14 @@
+import copy
 import logging
 
 from django.apps import AppConfig
 
+from jupyterjsc_tunneling.decorators import current_logger_configuration_mem
 from jupyterjsc_tunneling.settings import LOGGER_NAME
+from logs.utils import create_logging_handler
+from logs.utils import remove_logging_handler
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 class LogsConfig(AppConfig):
@@ -22,6 +28,25 @@ class LogsConfig(AppConfig):
         logging.getLogger(LOGGER_NAME).propagate = False
         logging.getLogger().setLevel(40)
         logging.getLogger().propagate = False
+
+        from .models import HandlerModel
+
+        global current_logger_configuration_mem
+
+        active_handler = HandlerModel.objects.all()
+        active_handler_dict = {x.handler: x.configuration for x in active_handler}
+        if active_handler_dict != current_logger_configuration_mem:
+            logger_handlers = logger.handlers
+            logger.handlers = [
+                handler
+                for handler in logger_handlers
+                if handler.name in active_handler_dict.keys()
+            ]
+            for name, configuration in active_handler_dict.items():
+                if configuration != current_logger_configuration_mem.get(name, {}):
+                    remove_logging_handler(name)
+                    create_logging_handler(name, **configuration)
+            current_logger_configuration_mem = copy.deepcopy(active_handler_dict)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
