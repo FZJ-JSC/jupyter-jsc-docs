@@ -1,3 +1,4 @@
+import base64
 import os
 import time
 
@@ -254,6 +255,48 @@ def add_test_files_to_tunneling(v1, name, namespace, data):
         else:
             break
     resp.close()
+
+
+def prepare_tunneling_pod(v1, name, namespace, tsi_name):
+    auth_keys_b64 = base64.b64encode(
+        (
+            '# DemoSite\nrestrict,port-forwarding,command="/bin/echo No commands allowed" '
+            + os.environ.get("LJUPYTER_SSH_TUNNEL_PUBLIC_KEY")
+            + "\n"
+        ).encode("utf-8")
+    ).decode("utf-8")
+    data = [
+        (
+            "/home/tunnel/.ssh/authorized_keys",
+            auth_keys_b64,
+            True,
+            "tunnel:users",
+            "600",
+        ),
+        (
+            "/tmp/ssh_config",
+            os.environ.get("FUNCTIONAL_TESTS_SSH_CONFIG"),
+            True,
+            "",
+            "",
+        ),
+        (
+            "/tmp/remote",
+            os.environ.get("TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY"),
+            False,
+            "tunnel:users",
+            "400",
+        ),
+        (
+            "/tmp/tunnel",
+            os.environ.get("TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY"),
+            False,
+            "tunnel:users",
+            "400",
+        ),
+    ]
+    add_test_files_to_tunneling(v1, name, namespace, data)
+    replace_ssh_host_in_tsi_manage_tunnel_script(v1, tsi_name, namespace, f"{name}-ssh")
 
 
 def start_unicore_tsi_pod_and_svcs(v1, name, namespace, image, tunnel_ssh_svc):

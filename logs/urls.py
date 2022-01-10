@@ -20,6 +20,7 @@ from rest_framework.routers import DefaultRouter
 from .views import HandlerViewSet
 from .views import LogTestViewSet
 
+
 router = DefaultRouter()
 router.register("handler", HandlerViewSet, basename="handler")
 router.register("logtest", LogTestViewSet, basename="logtest")
