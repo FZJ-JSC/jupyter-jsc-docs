@@ -1,14 +1,18 @@
-import copy
 import logging
 
 from django.apps import AppConfig
+
+from jupyterjsc_tunneling.settings import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 from jupyterjsc_tunneling.decorators import current_logger_configuration_mem
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 from logs.utils import create_logging_handler
 from logs.utils import remove_logging_handler
+import copy
 
-logger = logging.getLogger(LOGGER_NAME)
+from django.db.utils import OperationalError
 
 
 class LogsConfig(AppConfig):
@@ -29,6 +33,10 @@ class LogsConfig(AppConfig):
         logging.getLogger().setLevel(40)
         logging.getLogger().propagate = False
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def add_handler(self):
         from .models import HandlerModel
 
         global current_logger_configuration_mem
@@ -47,10 +55,12 @@ class LogsConfig(AppConfig):
                     remove_logging_handler(name)
                     create_logging_handler(name, **configuration)
             current_logger_configuration_mem = copy.deepcopy(active_handler_dict)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        logger.info("logging handler setup done", extra={"uuidcode": "StartUp"})
 
     def ready(self):
         self.start_logger()
+        try:
+            self.add_handler()
+        except OperationalError:
+            pass
         return super().ready()
