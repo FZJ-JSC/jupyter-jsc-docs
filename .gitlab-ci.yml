@@ -46,6 +46,7 @@ workflow:
         BUILD_COMMIT_TAG: "True"
         FUNCTIONAL_TEST_TAG: $CI_COMMIT_SHORT_SHA 
     - if: $CI_COMMIT_BRANCH == "devel-ft"
+      variables:
         RUN_UNIT_TESTS: "False"
         BUILD_COMMIT_TAG: "False"
         FUNCTIONAL_TEST_TAG: $CURRENT_RC_TAG
