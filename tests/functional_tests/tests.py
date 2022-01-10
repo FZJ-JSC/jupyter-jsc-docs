@@ -7,6 +7,7 @@ import unittest
 import requests
 from parameterized import parameterized
 from utils import add_test_files_to_tunneling
+from utils import check_if_port_is_listening
 from utils import delete_tunneling_pod_and_svcs
 from utils import delete_unicore_tsi_pod_and_svcs
 from utils import load_env
@@ -27,6 +28,7 @@ class FunctionalTests(unittest.TestCase):
     k8s_host = None
     k8s_user_token = None
     k8s_ca_auth_path = None
+    remote_tunnel_port_at_tsi = 56789
 
     v1 = None
     url = None
@@ -280,6 +282,12 @@ class FunctionalTests(unittest.TestCase):
         r = requests.get(url=demo_site_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json(), {"running": True})
+
+        # Check if something is listening on port 56789
+        listening_at_tsi = check_if_port_is_listening(
+            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        )
+        self.assertTrue(listening_at_tsi)
 
         # delete demo site remote tunnel
         r = requests.delete(url=demo_site_url, headers=self.headers)

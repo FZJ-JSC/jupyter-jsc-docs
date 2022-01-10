@@ -136,6 +136,32 @@ def wait_for_tunneling_svc(url):
         time.sleep(1)
 
 
+def check_if_port_is_listening(v1, name, namespace, port):
+    exec_command = ["/bin/sh"]
+    resp = stream(
+        v1.connect_get_namespaced_pod_exec,
+        name,
+        namespace,
+        command=exec_command,
+        stderr=True,
+        stdin=True,
+        stdout=True,
+        tty=False,
+        _preload_content=False,
+    )
+    command = f"netstat -ltnp 2>/dev/null | tr -s ' ' | grep \":{port}\" | wc -l"
+    resp.write_stdin(command + "\n")
+    resp.update(timeout=1)
+    time.sleep(1)
+    running = False
+    if resp.peek_stdout():
+        stdout = resp.read_stdout().strip()
+        if stdout == "1":
+            running = True
+    resp.close()
+    return running
+
+
 def wait_for_tsi_svc(v1, name, namespace):
     exec_command = ["/bin/sh"]
     resp = stream(
