@@ -27,7 +27,7 @@ stages:
   - functional-tests
 
 variables:
-  CURRENT_RC_TAG: "1.0.0-rc3"
+  CURRENT_RC_TAG: "1.0.0-rc4"
   UNICORE_TSI_VERSION: "8.2.1-ljupyter-1.6"
   TUNNEL_SECRET_KEY: $TUNNEL_SECRET_KEY
   TUNNEL_SUPERUSER_PASS: $TUNNEL_SUPERUSER_PASS
