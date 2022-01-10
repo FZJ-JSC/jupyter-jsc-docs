@@ -68,7 +68,27 @@ def delete_tunneling_pod_and_svcs(v1, name, namespace):
     v1.delete_namespaced_pod(name=name, namespace=namespace)
 
 
-def start_tunneling_pod_and_svcs(v1, name, namespace, image):
+def start_tunneling_pod_and_svcs(v1, name, namespace, image, additional_envs=[]):
+    env = [
+        {
+            "name": "DEPLOYMENT_NAME",
+            "value": name,
+        },
+        {
+            "name": "DEPLOYMENT_NAMESPACE",
+            "value": namespace,
+        },
+        {
+            "name": "TUNNEL_SUPERUSER_PASS",
+            "value": os.environ.get("TUNNEL_SUPERUSER_PASS"),
+        },
+        {
+            "name": "SSHCONFIGFILE",
+            "value": "/tmp/ssh_config",
+        },
+    ]
+    if additional_envs:
+        env.extend(additional_envs)
     pod_manifest = {
         "apiVersion": "v1",
         "kind": "Pod",
@@ -85,24 +105,7 @@ def start_tunneling_pod_and_svcs(v1, name, namespace, image):
                     "image": image,
                     "imagePullPolicy": "Always",
                     "name": name,
-                    "env": [
-                        {
-                            "name": "DEPLOYMENT_NAME",
-                            "value": name,
-                        },
-                        {
-                            "name": "DEPLOYMENT_NAMESPACE",
-                            "value": namespace,
-                        },
-                        {
-                            "name": "TUNNEL_SUPERUSER_PASS",
-                            "value": os.environ.get("TUNNEL_SUPERUSER_PASS"),
-                        },
-                        {
-                            "name": "SSHCONFIGFILE",
-                            "value": "/tmp/ssh_config",
-                        },
-                    ],
+                    "env": env,
                 }
             ],
             "serviceAccount": "tunneling-devel-svc-acc",
@@ -134,6 +137,32 @@ def wait_for_tunneling_svc(url):
         ):
             pass
         time.sleep(1)
+
+
+def check_if_port_is_listening(v1, name, namespace, port):
+    exec_command = ["/bin/sh"]
+    resp = stream(
+        v1.connect_get_namespaced_pod_exec,
+        name,
+        namespace,
+        command=exec_command,
+        stderr=True,
+        stdin=True,
+        stdout=True,
+        tty=False,
+        _preload_content=False,
+    )
+    command = f"netstat -ltnp 2>/dev/null | tr -s ' ' | grep \":{port}\" | wc -l"
+    resp.write_stdin(command + "\n")
+    resp.update(timeout=1)
+    time.sleep(1)
+    running = False
+    if resp.peek_stdout():
+        stdout = resp.read_stdout().strip()
+        if stdout == "1":
+            running = True
+    resp.close()
+    return running
 
 
 def wait_for_tsi_svc(v1, name, namespace):
