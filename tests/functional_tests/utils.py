@@ -7,7 +7,7 @@ from kubernetes.stream import stream
 
 
 def load_env():
-    suffix = os.environ.get("CI_COMMIT_SHORT_SHA", "")
+    suffix = os.environ.get("FUNCTIONAL_TEST_TAG", "")
     name = f"tunneling-devel-{suffix}"
     namespace = "gitlab"
     image = (

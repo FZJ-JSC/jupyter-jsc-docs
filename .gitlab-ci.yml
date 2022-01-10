@@ -27,8 +27,7 @@ stages:
   - functional-tests
 
 variables:
-  BUILD_NEW_VERSION: "False"
-  # RC_VERSION: "1.0.0-rc1"
+  CURRENT_RC_TAG: "1.0.0-rc1"
   UNICORE_TSI_VERSION: "8.2.1-ljupyter-1.6"
   TUNNEL_SECRET_KEY: $TUNNEL_SECRET_KEY
   TUNNEL_SUPERUSER_PASS: $TUNNEL_SUPERUSER_PASS
@@ -38,6 +37,19 @@ variables:
   K8S_TEST_CLUSTER_CA_AUTH_DATA: $K8S_TEST_CLUSTER_CA_AUTH_DATA
   K8S_TEST_CLUSTER_USER_TOKEN: $K8S_TEST_CLUSTER_USER_TOKEN
   K8S_TEST_CLUSTER_SERVER: $K8S_TEST_CLUSTER_SERVER
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "devel"
+      variables:
+        RUN_UNIT_TESTS: "True"
+        BUILD_COMMIT_TAG: "True"
+        FUNCTIONAL_TEST_TAG: $CI_COMMIT_SHORT_SHA 
+    - if: $CI_COMMIT_BRANCH == "devel-ft"
+        RUN_UNIT_TESTS: "False"
+        BUILD_COMMIT_TAG: "False"
+        FUNCTIONAL_TEST_TAG: $CURRENT_RC_TAG
+    - when: never
 
 unittest:
   stage: unittest
@@ -58,8 +70,7 @@ unittest:
     - pytest -c ${CI_PROJECT_DIR}/tests/logs_tests/pytest.ini
     - pytest -c ${CI_PROJECT_DIR}/tests/tunnel_tests/pytest.ini
   rules:
-    - if: $BUILD_NEW_VERSION == "True"
-      when: always 
+    - if: $RUN_UNIT_TESTS == "True"
 
 kaniko-build:
   stage: build
@@ -71,8 +82,7 @@ kaniko-build:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
   rules:
-    - if: $BUILD_NEW_VERSION == "True"
-      when: always 
+    - if: $BUILD_COMMIT_TAG == "True"
 
 functional-tests-in-k8s:
   stage: functional-tests
@@ -84,9 +94,10 @@ functional-tests-in-k8s:
     - export CA_AUTH_PATH="/tmp/k8s_ca.crt"
     - echo -n "${K8S_TEST_CLUSTER_CA_AUTH_DATA}" | base64 -d > ${CA_AUTH_PATH}
   script:
-    - if [[ $BUILD_NEW_VERSION == "True" ]]; then export FTTAG=$CI_COMMIT_SHORT_SHA; elif [[ -n $RC_VERSION ]]; then export FTTAG=$RC_VERSION; else exit 1; fi
     - export FUNCTIONAL_TESTS_SSH_CONFIG=$(sed -e "s/SUFFIX/${CI_COMMIT_SHORT_SHA}/g" tests/config/functional_tests/ssh_config | base64 -w 0)
     - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
+  rules:
+    - if: $FUNCTIONAL_TEST_TAG
 
 kaniko-build-tag:
   stage: build-tag
