@@ -98,6 +98,8 @@ def create_logging_handler(handler_name, **kwargs):
         else:
             kwargs["socktype"] = socket.SOCK_DGRAM
         kwargs["address"] = tuple(kwargs["address"])
+    if "class" in kwargs.keys():
+        del kwargs["class"]
     # Create handler, formatter, and add it
     handler = supported_handler_classes[handler_name](**kwargs)
     formatter = supported_formatter_classes[formatter_name](
