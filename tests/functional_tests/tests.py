@@ -440,7 +440,7 @@ class FunctionalTests(unittest.TestCase):
         self.delete_tunnel(tunnel_url, 5, resp_post_2["local_port"])
         self.delete_tunnel(tunnel_url, 6, resp_post_3["local_port"])
 
-    def skip_test_tunnel_with_preexisting_tunnels_in_db(self):
+    def test_tunnel_with_preexisting_tunnels_in_db(self):
         name = f"{self.name}-pre-tunnel"
         url = f"http://{name}:8080/api"
         tunnel_url = f"{url}/tunnel/"
@@ -476,6 +476,8 @@ class FunctionalTests(unittest.TestCase):
         )
         wait_for_tunneling_svc(url)
 
+        # TODO: Get Logs of new service, is startup log in it?
+
         # Verify that both predefined tunnels are running
         r = requests.get(tunnel_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
@@ -492,5 +494,5 @@ class FunctionalTests(unittest.TestCase):
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
 
-    def pass_test_remote_with_preexisting_db_entry(self):
+    def skip_test_remote_with_preexisting_db_entry(self):
         pass
