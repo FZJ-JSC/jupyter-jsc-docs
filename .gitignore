@@ -6,6 +6,9 @@ ssh_socket
 *.swp
 **/*.swp
 
+# local tests #
+uwsgi.local.ini 
+
 # Django #
 *.log
 *.pot
