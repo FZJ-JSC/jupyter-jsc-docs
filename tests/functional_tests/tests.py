@@ -25,6 +25,7 @@ class FunctionalTests(unittest.TestCase):
     image = None
     v1 = None
     name = None
+    tsi_name = None
     namespace = None
     k8s_host = None
     k8s_user_token = None
@@ -35,7 +36,7 @@ class FunctionalTests(unittest.TestCase):
     url = None
     headers = {
         "Content-Type": "application/json",
-        "Authorization": "Basic YWRtaW46cGphZjE5MDQwMW9pYWY=",
+        "Authorization": f"Basic {os.environ.get('TUNNEL_SUPERUSER_PASS_B64', '')}",
     }
 
     def setUp(self):
@@ -52,6 +53,7 @@ class FunctionalTests(unittest.TestCase):
         self.v1 = load_k8s_client(
             self.k8s_host, self.k8s_user_token, self.k8s_ca_auth_path
         )
+        self.tsi_name = f"unicore-test-tsi-{self.suffix}"
         return super().setUp()
 
     @classmethod
