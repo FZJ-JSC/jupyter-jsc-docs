@@ -1,4 +1,3 @@
-import base64
 import copy
 import json
 import os
@@ -7,13 +6,12 @@ import unittest
 import requests
 from kubernetes import client
 from parameterized import parameterized
-from utils import add_test_files_to_tunneling
 from utils import check_if_port_is_listening
 from utils import delete_tunneling_pod_and_svcs
 from utils import delete_unicore_tsi_pod_and_svcs
 from utils import load_env
 from utils import load_k8s_client
-from utils import replace_ssh_host_in_tsi_manage_tunnel_script
+from utils import prepare_tunneling_pod
 from utils import start_tunneling_pod_and_svcs
 from utils import start_unicore_tsi_pod_and_svcs
 from utils import wait_for_tsi_svc
@@ -76,47 +74,7 @@ class FunctionalTests(unittest.TestCase):
             v1, tsi_name, namespace, tsi_image, f"{name}-ssh"
         )
         start_tunneling_pod_and_svcs(v1, name, namespace, image)
-        auth_keys_b64 = base64.b64encode(
-            (
-                '# DemoSite\nrestrict,port-forwarding,command="/bin/echo No commands allowed" '
-                + os.environ.get("LJUPYTER_SSH_TUNNEL_PUBLIC_KEY")
-                + "\n"
-            ).encode("utf-8")
-        ).decode("utf-8")
-        data = [
-            (
-                "/home/tunnel/.ssh/authorized_keys",
-                auth_keys_b64,
-                True,
-                "tunnel:users",
-                "600",
-            ),
-            (
-                "/tmp/ssh_config",
-                os.environ.get("FUNCTIONAL_TESTS_SSH_CONFIG"),
-                True,
-                "",
-                "",
-            ),
-            (
-                "/tmp/remote",
-                os.environ.get("TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY"),
-                False,
-                "tunnel:users",
-                "400",
-            ),
-            (
-                "/tmp/tunnel",
-                os.environ.get("TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY"),
-                False,
-                "tunnel:users",
-                "400",
-            ),
-        ]
-        add_test_files_to_tunneling(v1, name, namespace, data)
-        replace_ssh_host_in_tsi_manage_tunnel_script(
-            v1, tsi_name, namespace, f"{name}-ssh"
-        )
+        prepare_tunneling_pod(v1, name, namespace, tsi_name)
         wait_for_tunneling_svc(url)
         wait_for_tsi_svc(v1, tsi_name, namespace)
 
