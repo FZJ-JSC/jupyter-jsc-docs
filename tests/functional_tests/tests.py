@@ -95,10 +95,21 @@ class FunctionalTests(unittest.TestCase):
         tsi_name = f"unicore-test-tsi-{suffix}"
         delete_unicore_tsi_pod_and_svcs(v1, tsi_name, namespace)
 
-        # Delete pre-tunnel pods and svcs, if test failed it's still running
+        # Delete pre-tunnel / pre-remote pods and svcs, if test failed it's still running
         try:
+            delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
+        except:
             pass
-            # delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
+        try:
+            v1.delete_namespaced_service(name=f"{name}-5")
+        except:
+            pass
+        try:
+            v1.delete_namespaced_service(name=f"{name}-6")
+        except:
+            pass
+        try:
+            delete_tunneling_pod_and_svcs(v1, f"{name}-pre-remote", namespace)
         except:
             pass
 
@@ -266,6 +277,12 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json(), {"running": False})
 
+        # Check that nothing is listening on port 56789
+        listening_at_tsi = check_if_port_is_listening(
+            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        )
+        self.assertFalse(listening_at_tsi)
+
         # Remote Tunnel connection and db entry will stay (intended behaviour)
         r = requests.get(url=remote_url, headers=self.headers)
         self.assertEqual(r.status_code, 200)
@@ -429,20 +446,21 @@ class FunctionalTests(unittest.TestCase):
             {
                 "name": "SQL_DATABASE",
                 "value": "tests/functional_tests/db.sqlite3.two_running_tunnels",
-            }
+            },
+            {"name": "DELAYED_START_IN_SEC", "value": "10"},
         ]
 
         start_tunneling_pod_and_svcs(
-            self.v1,
-            name,
-            self.namespace,
-            self.image,
-            additional_envs=additional_envs,
+            self.v1, name, self.namespace, self.image, additional_envs=additional_envs
         )
         prepare_tunneling_pod(self.v1, name, self.namespace, self.tsi_name)
         wait_for_tunneling_svc(url)
 
-        # TODO: Get Logs of new service, is startup log in it?
+        # Check if logs are shown
+        logs = self.v1.read_namespaced_pod_log(
+            name=name, namespace=self.namespace
+        ).strip()
+        self.assertIn("Start db-tunnels --- uuidcode=StartUp", logs)
 
         # Verify that both predefined tunnels are running
         r = requests.get(tunnel_url, headers=self.headers)
@@ -452,14 +470,95 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(resp_get[0], resp_post_2)
         self.assertEqual(resp_get[1], resp_post_3)
         is_listening_2 = check_if_port_is_listening(
-            self.v1, self.name, self.namespace, resp_post_2["local_port"]
+            self.v1, name, self.namespace, resp_post_2["local_port"]
         )
         is_listening_3 = check_if_port_is_listening(
-            self.v1, self.name, self.namespace, resp_post_3["local_port"]
+            self.v1, name, self.namespace, resp_post_3["local_port"]
         )
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
-        # delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
 
-    def skip_test_remote_with_preexisting_db_entry(self):
-        pass
+        # If it does not exists, an exception is thrown
+        svc_2 = self.v1.read_namespaced_service(
+            name=f"{name}-{resp_post_2['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        svc_3 = self.v1.read_namespaced_service(
+            name=f"{name}-{resp_post_3['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        self.assertEqual(svc_2["spec"]["ports"][0]["port"], resp_post_2["local_port"])
+        self.assertEqual(svc_3["spec"]["ports"][0]["port"], resp_post_3["local_port"])
+
+        # tearDown
+        delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
+        self.v1.delete_namespaced_service(
+            name=f"{name}-{resp_post_2['backend_id']}", namespace=self.namespace
+        )
+        self.v1.delete_namespaced_service(
+            name=f"{name}-{resp_post_3['backend_id']}", namespace=self.namespace
+        )
+
+    def test_remote_with_preexisting_db_entry(self):
+        name = f"{self.name}-pre-remote"
+        url = f"http://{name}:8080/api"
+        remote_url = f"{url}/remote/"
+        demo_site_url = f"{remote_url}demo_site"
+
+        # Check that nothing is listening on port 56789
+        listening_at_tsi = check_if_port_is_listening(
+            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        )
+        self.assertFalse(listening_at_tsi)
+
+        # Start tunnel service with prefilled database
+        additional_envs = [
+            {
+                "name": "SQL_DATABASE",
+                "value": "tests/functional_tests/db.sqlite3.one_running_remote",
+            },
+            {"name": "DELAYED_START_IN_SEC", "value": "10"},
+        ]
+
+        start_tunneling_pod_and_svcs(
+            self.v1, name, self.namespace, self.image, additional_envs=additional_envs
+        )
+        prepare_tunneling_pod(self.v1, name, self.namespace, self.tsi_name)
+        wait_for_tunneling_svc(url)
+
+        # Check if logs are shown
+        logs = self.v1.read_namespaced_pod_log(
+            name=name, namespace=self.namespace
+        ).strip()
+        self.assertIn("Start db-remote-tunnels --- uuidcode=StartUp", logs)
+
+        # list all remote tunnel
+        r = requests.get(url=remote_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotEqual(r.json(), [])
+
+        # retrieve demo site remote tunnel
+        r = requests.get(url=demo_site_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {"running": True})
+
+        # Check if something is listening on port 56789
+        listening_at_tsi = check_if_port_is_listening(
+            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        )
+        self.assertTrue(listening_at_tsi)
+
+        # delete demo site remote tunnel
+        r = requests.delete(url=demo_site_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+
+        # retrieve demo site remote tunnel
+        r = requests.get(url=demo_site_url, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {"running": False})
+
+        # Check that nothing is listening on port 56789
+        listening_at_tsi = check_if_port_is_listening(
+            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        )
+        self.assertFalse(listening_at_tsi)
+
+        delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)

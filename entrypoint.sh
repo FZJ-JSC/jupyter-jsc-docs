@@ -29,7 +29,9 @@ elif [[ -z ${SQL_DATABASE} ]]; then
 fi
 
 if [[ ! -d /home/tunnel/web/static ]]; then
-    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
+    echo "$(date) Collect static files ..."
+    su tunnel -c "SQL_DATABASE=/dev/null /usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
+    echo "$(date) ... done"
 fi
 
 if [[ -z $WORKER ]]; then
@@ -42,6 +44,12 @@ fi
 
 if [ -z ${UWSGI_PATH} ]; then
     UWSGI_PATH=/home/tunnel/web/uwsgi.ini
+fi
+
+if [[ -n ${DELAYED_START_IN_SEC} ]]; then
+    echo "$(date): Delay start by ${DELAYED_START_IN_SEC} seconds ..."
+    sleep ${DELAYED_START_IN_SEC}
+    echo "$(date): ... done"
 fi
 
 su tunnel -c "uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}"
