@@ -97,8 +97,7 @@ class FunctionalTests(unittest.TestCase):
 
         # Delete pre-tunnel pods and svcs, if test failed it's still running
         try:
-            pass
-            # delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
+            delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
         except:
             pass
 
@@ -434,16 +433,16 @@ class FunctionalTests(unittest.TestCase):
         ]
 
         start_tunneling_pod_and_svcs(
-            self.v1,
-            name,
-            self.namespace,
-            self.image,
-            additional_envs=additional_envs,
+            self.v1, name, self.namespace, self.image, additional_envs=additional_envs
         )
         prepare_tunneling_pod(self.v1, name, self.namespace, self.tsi_name)
         wait_for_tunneling_svc(url)
 
-        # TODO: Get Logs of new service, is startup log in it?
+        # Check if logs are shown
+        logs = self.v1.read_namespaced_pod_log(
+            name=name, namespace=self.namespace
+        ).strip()
+        self.assertIn("Start db-tunnels --- uuidcode=StartUp", logs)
 
         # Verify that both predefined tunnels are running
         r = requests.get(tunnel_url, headers=self.headers)
@@ -460,7 +459,19 @@ class FunctionalTests(unittest.TestCase):
         )
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
-        # delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
+
+        # If it does not exists, an exception is thrown
+        svc_2 = self.v1.read_namespaced_service(
+            name=f"{name}-{resp_post_2['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        svc_3 = self.v1.read_namespaced_service(
+            name=f"{name}-{resp_post_3['backend_id']}", namespace=self.namespace
+        ).to_dict()
+        self.assertEqual(svc_2["spec"]["ports"][0]["port"], resp_post_2["local_port"])
+        self.assertEqual(svc_3["spec"]["ports"][0]["port"], resp_post_3["local_port"])
+
+        # tearDown
+        delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
 
     def skip_test_remote_with_preexisting_db_entry(self):
         pass
