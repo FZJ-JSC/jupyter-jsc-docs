@@ -29,7 +29,9 @@ elif [[ -z ${SQL_DATABASE} ]]; then
 fi
 
 if [[ ! -d /home/tunnel/web/static ]]; then
-    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
+    echo "$(date) Collect static files ..."
+    su tunnel -c "SQL_DATABASE=/dev/null /usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
+    echo "$(date) ... done"
 fi
 
 if [[ -z $WORKER ]]; then
