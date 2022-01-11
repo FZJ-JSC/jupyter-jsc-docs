@@ -101,11 +101,11 @@ class FunctionalTests(unittest.TestCase):
         except:
             pass
         try:
-            v1.delete_namespaced_service(name=f"{name}-5")
+            v1.delete_namespaced_service(name=f"{name}-5", namespace=namespace)
         except:
             pass
         try:
-            v1.delete_namespaced_service(name=f"{name}-6")
+            v1.delete_namespaced_service(name=f"{name}-6", namespace=namespace)
         except:
             pass
         try:
