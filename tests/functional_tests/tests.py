@@ -97,7 +97,8 @@ class FunctionalTests(unittest.TestCase):
 
         # Delete pre-tunnel pods and svcs, if test failed it's still running
         try:
-            delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
+            pass
+            # delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
         except:
             pass
 
@@ -438,6 +439,7 @@ class FunctionalTests(unittest.TestCase):
             self.image,
             additional_envs=additional_envs,
         )
+        prepare_tunneling_pod(self.v1, name, self.namespace, self.tsi_name)
         wait_for_tunneling_svc(url)
 
         # TODO: Get Logs of new service, is startup log in it?
@@ -457,7 +459,7 @@ class FunctionalTests(unittest.TestCase):
         )
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
-        delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
+        # delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
 
     def skip_test_remote_with_preexisting_db_entry(self):
         pass
