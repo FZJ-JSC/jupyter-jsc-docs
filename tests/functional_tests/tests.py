@@ -447,7 +447,7 @@ class FunctionalTests(unittest.TestCase):
                 "name": "SQL_DATABASE",
                 "value": "tests/functional_tests/db.sqlite3.two_running_tunnels",
             },
-            {"name": "DELAYED_START_IN_SEC", "value": "5"},
+            {"name": "DELAYED_START_IN_SEC", "value": "10"},
         ]
 
         start_tunneling_pod_and_svcs(
@@ -515,7 +515,7 @@ class FunctionalTests(unittest.TestCase):
                 "name": "SQL_DATABASE",
                 "value": "tests/functional_tests/db.sqlite3.one_running_remote",
             },
-            {"name": "DELAYED_START_IN_SEC", "value": "5"},
+            {"name": "DELAYED_START_IN_SEC", "value": "10"},
         ]
 
         start_tunneling_pod_and_svcs(
