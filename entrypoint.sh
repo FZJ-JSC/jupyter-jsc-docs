@@ -45,7 +45,9 @@ if [ -z ${UWSGI_PATH} ]; then
 fi
 
 if [[ -n ${DELAYED_START_IN_SEC} ]]; then
+    echo "$(date): Delay start by ${DELAYED_START_IN_SEC} seconds ..."
     sleep ${DELAYED_START_IN_SEC}
+    echo "$(date): ... done"
 fi
 
 su tunnel -c "uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}"
