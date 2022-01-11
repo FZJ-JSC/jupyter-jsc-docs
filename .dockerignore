@@ -12,6 +12,8 @@ README.md
 LICENSE
 .dockerignore
 Dockerfile
+tests
+!/tests/functional_tests/db.sqlite3*
 db.sqlite3*
 build-requirements.txt
 functional_tests
