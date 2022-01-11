@@ -55,7 +55,7 @@ workflow:
       variables:
         RUN_UNIT_TESTS: "True"
         BUILD_COMMIT_TAG: "True"
-        FUNCTIONAL_TEST_TAG: $CI_COMMIT_SHORT_SHA 
+        FUNCTIONAL_TEST_TAG: $CI_COMMIT_TAG
     - when: never
 
 unittest:
