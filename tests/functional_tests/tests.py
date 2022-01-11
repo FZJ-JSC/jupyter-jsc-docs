@@ -95,7 +95,7 @@ class FunctionalTests(unittest.TestCase):
         tsi_name = f"unicore-test-tsi-{suffix}"
         delete_unicore_tsi_pod_and_svcs(v1, tsi_name, namespace)
 
-        # Delete pre-tunnel pods and svcs, if test failed it's still running
+        # Delete pre-tunnel / pre-remote pods and svcs, if test failed it's still running
         try:
             delete_tunneling_pod_and_svcs(v1, f"{name}-pre-tunnel", namespace)
         except:
@@ -106,6 +106,10 @@ class FunctionalTests(unittest.TestCase):
             pass
         try:
             v1.delete_namespaced_service(name=f"{name}-6")
+        except:
+            pass
+        try:
+            delete_tunneling_pod_and_svcs(v1, f"{name}-pre-remote", namespace)
         except:
             pass
 
@@ -486,8 +490,12 @@ class FunctionalTests(unittest.TestCase):
 
         # tearDown
         delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
-        self.v1.delete_namespaced_service(name=f"{name}-{resp_post_2['backend_id']}")
-        self.v1.delete_namespaced_service(name=f"{name}-{resp_post_3['backend_id']}")
+        self.v1.delete_namespaced_service(
+            name=f"{name}-{resp_post_2['backend_id']}", namespace=self.namespace
+        )
+        self.v1.delete_namespaced_service(
+            name=f"{name}-{resp_post_3['backend_id']}", namespace=self.namespace
+        )
 
     def test_remote_with_preexisting_db_entry(self):
         name = f"{self.name}-pre-remote"
@@ -507,7 +515,7 @@ class FunctionalTests(unittest.TestCase):
                 "name": "SQL_DATABASE",
                 "value": "tests/functional_tests/db.sqlite3.one_running_remote",
             },
-            {"name": "DELAYED_START_IN_SEC", "value": "0"},
+            {"name": "DELAYED_START_IN_SEC", "value": "5"},
         ]
 
         start_tunneling_pod_and_svcs(
@@ -552,3 +560,5 @@ class FunctionalTests(unittest.TestCase):
             self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
         )
         self.assertFalse(listening_at_tsi)
+
+        delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)
