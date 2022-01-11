@@ -44,4 +44,8 @@ if [ -z ${UWSGI_PATH} ]; then
     UWSGI_PATH=/home/tunnel/web/uwsgi.ini
 fi
 
+if [[ -n ${DELAYED_START_IN_SEC} ]]; then
+    sleep ${DELAYED_START_IN_SEC}
+fi
+
 su tunnel -c "uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}"

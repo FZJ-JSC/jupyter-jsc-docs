@@ -429,7 +429,8 @@ class FunctionalTests(unittest.TestCase):
             {
                 "name": "SQL_DATABASE",
                 "value": "tests/functional_tests/db.sqlite3.two_running_tunnels",
-            }
+            },
+            {"name": "DELAYED_START_IN_SEC", "value": "5"},
         ]
 
         start_tunneling_pod_and_svcs(
@@ -452,10 +453,10 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(resp_get[0], resp_post_2)
         self.assertEqual(resp_get[1], resp_post_3)
         is_listening_2 = check_if_port_is_listening(
-            self.v1, self.name, self.namespace, resp_post_2["local_port"]
+            self.v1, name, self.namespace, resp_post_2["local_port"]
         )
         is_listening_3 = check_if_port_is_listening(
-            self.v1, self.name, self.namespace, resp_post_3["local_port"]
+            self.v1, name, self.namespace, resp_post_3["local_port"]
         )
         self.assertTrue(is_listening_2)
         self.assertTrue(is_listening_3)
