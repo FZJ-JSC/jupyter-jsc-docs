@@ -25,6 +25,7 @@ class TunnelConfig(AppConfig):
         tunnels = TunnelModel.objects.all()
         for tunnel in tunnels:
             try:
+                kwargs["backend_id"] = tunnel.backend_id
                 kwargs["hostname"] = tunnel.hostname
                 kwargs["local_port"] = tunnel.local_port
                 kwargs["target_node"] = tunnel.target_node
