@@ -28,7 +28,7 @@ stages:
 
 variables:
   CURRENT_RC_TAG: "1.0.0-rc7"
-  UNICORE_TSI_VERSION: "8.2.1-ljupyter-1.6"
+  UNICORE_SERVER_VERSION: "8.3.0-ljupyter-1"
   TUNNEL_SECRET_KEY: $TUNNEL_SECRET_KEY
   TUNNEL_SUPERUSER_PASS: $TUNNEL_SUPERUSER_PASS
   TUNNEL_SUPERUSER_PASS_B64: $TUNNEL_SUPERUSER_PASS_B64
@@ -62,7 +62,7 @@ unittest:
   stage: unittest
   timeout: 20 minutes
   services:
-    - name: registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/unicore-test-server/unicore-tsi-slurm:${UNICORE_TSI_VERSION}
+    - name: registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/unicore-test-server/unicore-server:${UNICORE_SERVER_VERSION}
       alias: unicore-test-tsi
   image:
     name: python:alpine3.14
