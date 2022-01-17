@@ -8,14 +8,14 @@ from kubernetes import client
 from parameterized import parameterized
 from utils import check_if_port_is_listening
 from utils import delete_tunneling_pod_and_svcs
-from utils import delete_unicore_tsi_pod_and_svcs
+from utils import delete_unicore_pod_and_svcs
 from utils import load_env
 from utils import load_k8s_client
 from utils import prepare_tunneling_pod
 from utils import start_tunneling_pod_and_svcs
-from utils import start_unicore_tsi_pod_and_svcs
-from utils import wait_for_tsi_svc
+from utils import start_unicore_pod_and_svcs
 from utils import wait_for_tunneling_svc
+from utils import wait_for_unicore_svc
 
 
 class FunctionalTests(unittest.TestCase):
@@ -23,12 +23,12 @@ class FunctionalTests(unittest.TestCase):
     image = None
     v1 = None
     name = None
-    tsi_name = None
+    unicore_name = None
     namespace = None
     k8s_host = None
     k8s_user_token = None
     k8s_ca_auth_path = None
-    remote_tunnel_port_at_tsi = 56789
+    remote_tunnel_port_at_unicore = 56789
 
     v1 = None
     url = None
@@ -51,7 +51,7 @@ class FunctionalTests(unittest.TestCase):
         self.v1 = load_k8s_client(
             self.k8s_host, self.k8s_user_token, self.k8s_ca_auth_path
         )
-        self.tsi_name = f"unicore-test-tsi-{self.suffix}"
+        self.unicore_name = f"unicore-server-{self.suffix}"
         return super().setUp()
 
     @classmethod
@@ -67,16 +67,16 @@ class FunctionalTests(unittest.TestCase):
             url,
         ) = load_env()
         v1 = load_k8s_client(k8s_host, k8s_user_token, k8s_ca_auth_path)
-        tsi_version = os.environ.get("UNICORE_TSI_VERSION")
-        tsi_image = f"registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/unicore-test-server/unicore-tsi-slurm:{tsi_version}"
-        tsi_name = f"unicore-test-tsi-{suffix}"
-        start_unicore_tsi_pod_and_svcs(
-            v1, tsi_name, namespace, tsi_image, f"{name}-ssh"
+        unicore_version = os.environ.get("UNICORE_SERVER_VERSION")
+        unicore_image = f"registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/unicore-test-server/unicore-server:{unicore_version}"
+        unicore_name = f"unicore-server-{suffix}"
+        start_unicore_pod_and_svcs(
+            v1, unicore_name, namespace, unicore_image, f"{name}-ssh"
         )
         start_tunneling_pod_and_svcs(v1, name, namespace, image)
-        prepare_tunneling_pod(v1, name, namespace, tsi_name)
+        prepare_tunneling_pod(v1, name, namespace, unicore_name)
         wait_for_tunneling_svc(url)
-        wait_for_tsi_svc(v1, tsi_name, namespace)
+        wait_for_unicore_svc(v1, unicore_name, namespace)
 
     @classmethod
     def tearDownClass(cls):
@@ -92,8 +92,8 @@ class FunctionalTests(unittest.TestCase):
         ) = load_env()
         v1 = load_k8s_client(k8s_host, k8s_user_token, k8s_ca_auth_path)
         delete_tunneling_pod_and_svcs(v1, name, namespace)
-        tsi_name = f"unicore-test-tsi-{suffix}"
-        delete_unicore_tsi_pod_and_svcs(v1, tsi_name, namespace)
+        unicore_name = f"unicore-server-{suffix}"
+        delete_unicore_pod_and_svcs(v1, unicore_name, namespace)
 
         # Delete pre-tunnel / pre-remote pods and svcs, if test failed it's still running
         try:
@@ -263,10 +263,13 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(r.json(), {"running": True})
 
         # Check if something is listening on port 56789
-        listening_at_tsi = check_if_port_is_listening(
-            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        listening_at_unicore = check_if_port_is_listening(
+            self.v1,
+            self.unicore_name,
+            self.namespace,
+            self.remote_tunnel_port_at_unicore,
         )
-        self.assertTrue(listening_at_tsi)
+        self.assertTrue(listening_at_unicore)
 
         # delete demo site remote tunnel
         r = requests.delete(url=demo_site_url, headers=self.headers)
@@ -278,10 +281,13 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(r.json(), {"running": False})
 
         # Check that nothing is listening on port 56789
-        listening_at_tsi = check_if_port_is_listening(
-            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        listening_at_unicore = check_if_port_is_listening(
+            self.v1,
+            self.unicore_name,
+            self.namespace,
+            self.remote_tunnel_port_at_unicore_,
         )
-        self.assertFalse(listening_at_tsi)
+        self.assertFalse(listening_at_unicore)
 
         # Remote Tunnel connection and db entry will stay (intended behaviour)
         r = requests.get(url=remote_url, headers=self.headers)
@@ -453,7 +459,7 @@ class FunctionalTests(unittest.TestCase):
         start_tunneling_pod_and_svcs(
             self.v1, name, self.namespace, self.image, additional_envs=additional_envs
         )
-        prepare_tunneling_pod(self.v1, name, self.namespace, self.tsi_name)
+        prepare_tunneling_pod(self.v1, name, self.namespace, self.unicore_name)
         wait_for_tunneling_svc(url)
 
         # Check if logs are shown
@@ -504,10 +510,13 @@ class FunctionalTests(unittest.TestCase):
         demo_site_url = f"{remote_url}demo_site"
 
         # Check that nothing is listening on port 56789
-        listening_at_tsi = check_if_port_is_listening(
-            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        listening_at_unicore = check_if_port_is_listening(
+            self.v1,
+            self.unicore_name,
+            self.namespace,
+            self.remote_tunnel_port_at_unicore,
         )
-        self.assertFalse(listening_at_tsi)
+        self.assertFalse(listening_at_unicore)
 
         # Start tunnel service with prefilled database
         additional_envs = [
@@ -521,7 +530,7 @@ class FunctionalTests(unittest.TestCase):
         start_tunneling_pod_and_svcs(
             self.v1, name, self.namespace, self.image, additional_envs=additional_envs
         )
-        prepare_tunneling_pod(self.v1, name, self.namespace, self.tsi_name)
+        prepare_tunneling_pod(self.v1, name, self.namespace, self.unicore_name)
         wait_for_tunneling_svc(url)
 
         # Check if logs are shown
@@ -541,10 +550,13 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(r.json(), {"running": True})
 
         # Check if something is listening on port 56789
-        listening_at_tsi = check_if_port_is_listening(
-            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        listening_at_unicore = check_if_port_is_listening(
+            self.v1,
+            self.unicore_name,
+            self.namespace,
+            self.remote_tunnel_port_at_unicore,
         )
-        self.assertTrue(listening_at_tsi)
+        self.assertTrue(listening_at_unicore)
 
         # delete demo site remote tunnel
         r = requests.delete(url=demo_site_url, headers=self.headers)
@@ -556,9 +568,12 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(r.json(), {"running": False})
 
         # Check that nothing is listening on port 56789
-        listening_at_tsi = check_if_port_is_listening(
-            self.v1, self.tsi_name, self.namespace, self.remote_tunnel_port_at_tsi
+        listening_at_unicore = check_if_port_is_listening(
+            self.v1,
+            self.unicore_name,
+            self.namespace,
+            self.remote_tunnel_port_at_unicore,
         )
-        self.assertFalse(listening_at_tsi)
+        self.assertFalse(listening_at_unicore)
 
         delete_tunneling_pod_and_svcs(self.v1, name, self.namespace)

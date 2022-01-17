@@ -170,7 +170,7 @@ def check_if_port_is_listening(v1, name, namespace, port):
     return running
 
 
-def wait_for_tsi_svc(v1, name, namespace):
+def wait_for_unicore_svc(v1, name, namespace):
     exec_command = ["/bin/sh"]
     resp = stream(
         v1.connect_get_namespaced_pod_exec,
@@ -198,7 +198,7 @@ def wait_for_tsi_svc(v1, name, namespace):
         resp.close()
 
 
-def replace_ssh_host_in_tsi_manage_tunnel_script(
+def replace_ssh_host_in_unicore_manage_tunnel_script(
     v1, name, namespace, tunnel_ssh_svc_name
 ):
     exec_command = [
@@ -234,7 +234,7 @@ def add_test_files_to_tunneling(v1, name, namespace, data):
         _preload_content=False,
     )
     commands = []
-    # Add authorized keys to allow unicore-test-tsi to connect to ljupyter
+    # Add authorized keys to allow unicore-server to connect to ljupyter
     commands.append("mkdir -p /home/tunnel/.ssh\n")
     commands.append("chown tunnel:users /home/tunnel/.ssh\n")
     commands.append("chmod 700 /home/tunnel/.ssh\n")
@@ -257,7 +257,7 @@ def add_test_files_to_tunneling(v1, name, namespace, data):
     resp.close()
 
 
-def prepare_tunneling_pod(v1, name, namespace, tsi_name):
+def prepare_tunneling_pod(v1, name, namespace, unicore_name):
     auth_keys_b64 = base64.b64encode(
         (
             '# DemoSite\nrestrict,port-forwarding,command="/bin/echo No commands allowed" '
@@ -296,10 +296,12 @@ def prepare_tunneling_pod(v1, name, namespace, tsi_name):
         ),
     ]
     add_test_files_to_tunneling(v1, name, namespace, data)
-    replace_ssh_host_in_tsi_manage_tunnel_script(v1, tsi_name, namespace, f"{name}-ssh")
+    replace_ssh_host_in_unicore_manage_tunnel_script(
+        v1, unicore_name, namespace, f"{name}-ssh"
+    )
 
 
-def start_unicore_tsi_pod_and_svcs(v1, name, namespace, image, tunnel_ssh_svc):
+def start_unicore_pod_and_svcs(v1, name, namespace, image, tunnel_ssh_svc):
     pod_manifest = {
         "apiVersion": "v1",
         "kind": "Pod",
@@ -338,6 +340,6 @@ def start_unicore_tsi_pod_and_svcs(v1, name, namespace, image, tunnel_ssh_svc):
     )
 
 
-def delete_unicore_tsi_pod_and_svcs(v1, name, namespace):
+def delete_unicore_pod_and_svcs(v1, name, namespace):
     v1.delete_namespaced_service(name=f"{name}-ssh", namespace=namespace)
     v1.delete_namespaced_pod(name=name, namespace=namespace)
