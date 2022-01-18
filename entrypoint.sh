@@ -26,7 +26,15 @@ elif [[ -z ${SQL_DATABASE} ]]; then
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py makemigrations"
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py migrate"
     su tunnel -c "echo \"import os; from django.contrib.auth.models import User; tunnelpass=os.environ.get('TUNNEL_SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', tunnelpass)\" | python manage.py shell"
+    su tunnel -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_logging');\" | python manage.py shell"
+    if [[ -n ${CREATE_BACKEND_USER} ]]; then
+        if [[ -z $BACKEND_USER_PASS ]]; then
+            export BACKEND_USER_PASS=$(uuidgen)
+        fi
+        su tunnel -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; backend_pass=os.environ.get('BACKEND_USER_PASS'); user = User.objects.create(username='backend'); user.set_password(backend_pass); user.save(); user.auth_token = Token.objects.create(user=user); print(f'Backend user token: {user.auth_token.key}'); os.environ['BACKEND_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice').first(); group2 = Group.objects.filter(name='access_to_logging').first(); user.groups.add(group1); user.groups.add(group2)\" | python manage.py shell"
+    fi
 fi
+
 
 if [[ ! -d /home/tunnel/web/static ]]; then
     echo "$(date) Collect static files ..."
