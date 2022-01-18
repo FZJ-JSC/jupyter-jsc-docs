@@ -1,7 +1,6 @@
 import copy
 import json
 import os
-import time
 import unittest
 
 import requests
@@ -78,7 +77,6 @@ class FunctionalTests(unittest.TestCase):
         prepare_tunneling_pod(v1, name, namespace, unicore_name)
         wait_for_tunneling_svc(url)
         wait_for_unicore_svc(v1, unicore_name, namespace)
-        time.sleep(3600)
 
     @classmethod
     def tearDownClass(cls):
