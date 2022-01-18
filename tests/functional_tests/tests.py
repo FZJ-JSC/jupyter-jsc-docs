@@ -285,7 +285,7 @@ class FunctionalTests(unittest.TestCase):
             self.v1,
             self.unicore_name,
             self.namespace,
-            self.remote_tunnel_port_at_unicore_,
+            self.remote_tunnel_port_at_unicore,
         )
         self.assertFalse(listening_at_unicore)
 
