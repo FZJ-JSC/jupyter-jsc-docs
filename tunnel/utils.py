@@ -59,7 +59,7 @@ def get_base_cmd(verbose=False):
         os.environ.get("SSHTIMEOUT", "3"),
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
     ]
     if verbose:
         base_cmd.append("-v")
