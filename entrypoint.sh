@@ -4,6 +4,8 @@
 if [ -z ${SSHD_LOG_PATH} ]; then
     SSHD_LOG_PATH=/home/tunnel/sshd.log
 fi
+
+chown -R tunnel:users /home/tunnel/.ssh
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
 # Check for secret key
