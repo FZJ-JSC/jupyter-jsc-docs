@@ -19,9 +19,12 @@ WORKDIR $APP_HOME
 # install dependencies
 RUN apk update &&\
     apk add --no-cache bash openssh rssh libpq util-linux uwsgi uwsgi-python3 uwsgi-logfile &&\
-    sed -i -r "s/^#PasswordAuthentication yes/PasswordAuthentication no/g" /etc/ssh/sshd_config &&\
-    sed -i -r "s/^AllowTcpForwarding no/AllowTcpForwarding yes/g" /etc/ssh/sshd_config &&\
-    sed -i -r "s/^#Port 22/Port 2222/g" /etc/ssh/sshd_config &&\
+    sed -i -r \
+    -e "s/^#PasswordAuthentication yes/PasswordAuthentication no/g" \
+    -e "s/^AllowTcpForwarding no/AllowTcpForwarding yes/g" \
+    -e "s/^#Port 22/Port 2222/g" \ 
+    -e "s/^GatewayPorts no/GatewayPorts yes/g" \ 
+    /etc/ssh/sshd_config &&\
     ssh-keygen -A
 
 RUN echo tunnel:$(uuidgen) | chpasswd
