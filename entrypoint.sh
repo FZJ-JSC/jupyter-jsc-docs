@@ -6,6 +6,10 @@ if [ -z ${SSHD_LOG_PATH} ]; then
 fi
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
+if [[ -n ${SSH_RO_PATH} ]]; then
+    cp -rp ${SSH_RO_PATH}/. /home/tunnel/.ssh/*
+fi
+
 chown -R tunnel:users /home/tunnel/.ssh/*
 chmod -R 400 /home/tunnel/.ssh/*
 
