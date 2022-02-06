@@ -7,7 +7,7 @@ fi
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
 if [[ -n ${SSH_RO_PATH} ]]; then
-    for f in ${SSH_RO_PATH} ; do
+    for f in ${SSH_RO_PATH}/* ; do
         if [[ -f $f ]]; then
             cp -rp $f /home/tunnel/.ssh/.
         fi
