@@ -5,7 +5,7 @@ FROM python:3.10.1-alpine3.15
 RUN apk update && apk upgrade && apk add bash mailcap
 
 # create directory for the app user
-RUN mkdir -p /home/tunnel/ssh_socket
+RUN mkdir -p /home/tunnel/ssh_socket && mkdir -p /home/tunnel/.ssh
 
 # create the app user
 RUN adduser --uid 1093 -D --ingroup users tunnel
@@ -39,7 +39,7 @@ RUN apk update && \
 
 # chown all the files to the app user
 RUN chown -R tunnel:users $APP_HOME
-RUN chown -R tunnel:users /home/tunnel/ssh_socket
+RUN chown -R tunnel:users /home/tunnel/ssh_socket && chown -R tunnel:users /home/tunnel/.ssh && chmod 700 /home/tunnel/.ssh
 
 EXPOSE 22
 

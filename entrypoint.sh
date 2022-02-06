@@ -4,17 +4,14 @@
 if [ -z ${SSHD_LOG_PATH} ]; then
     SSHD_LOG_PATH=/home/tunnel/sshd.log
 fi
-
-chown -R tunnel:users /home/tunnel/.ssh
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
+
+chown -R tunnel:users /home/tunnel/.ssh/*
+chmod -R 400 /home/tunnel/.ssh/*
 
 # Check for secret key
 if [[ -z $TUNNEL_SECRET_KEY ]]; then
     export TUNNEL_SECRET_KEY=$(uuidgen)
-fi
-
-if [[ -z $TUNNEL_SUPERUSER_PASS ]]; then
-    export TUNNEL_SUPERUSER_PASS=$(uuidgen)
 fi
 
 # Database setup / wait for database
@@ -25,6 +22,9 @@ if [ "$SQL_ENGINE" == "postgres" ]; then
     done
     echo "PostgreSQL started"
 elif [[ -z ${SQL_DATABASE} ]]; then
+    if [[ -z $TUNNEL_SUPERUSER_PASS ]]; then
+        export TUNNEL_SUPERUSER_PASS=$(uuidgen)
+    fi
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py makemigrations"
     su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py migrate"
     su tunnel -c "echo \"import os; from django.contrib.auth.models import User; tunnelpass=os.environ.get('TUNNEL_SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', tunnelpass)\" | python manage.py shell"
@@ -37,7 +37,6 @@ elif [[ -z ${SQL_DATABASE} ]]; then
     fi
 fi
 
-
 if [[ ! -d /home/tunnel/web/static ]]; then
     echo "$(date) Collect static files ..."
     su tunnel -c "SQL_DATABASE=/dev/null /usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
@@ -48,9 +47,6 @@ if [[ -z $WORKER ]]; then
         echo "Use 1 worker (default)"
         WORKER=1
 fi
-
-# Requirement for psycopg2, even if it's not marked by psycopg2 as requirement
-# export LD_PRELOAD=/lib/libssl.so.1.1
 
 if [ -z ${UWSGI_PATH} ]; then
     UWSGI_PATH=/home/tunnel/web/uwsgi.ini
