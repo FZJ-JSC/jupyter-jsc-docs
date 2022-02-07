@@ -8,7 +8,7 @@ RUN apk update && apk upgrade && apk add bash mailcap
 RUN mkdir -p /home/tunnel/ssh_socket && mkdir -p /home/tunnel/.ssh
 
 # create the app user
-RUN adduser --uid 1093 -D --ingroup users tunnel
+RUN adduser --uid 1000 -D --ingroup users tunnel
 
 # create the appropriate directories
 ENV HOME=/home/tunnel

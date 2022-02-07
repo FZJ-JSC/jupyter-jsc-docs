@@ -66,4 +66,10 @@ if [[ -n ${DELAYED_START_IN_SEC} ]]; then
     echo "$(date): ... done"
 fi
 
-su tunnel -c "uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}"
+if [[ ${DEVEL,,} == "true" ]]; then
+    while true; do
+        sleep 30
+    done
+else
+    su tunnel -c "uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}"
+fi
