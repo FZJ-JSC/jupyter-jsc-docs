@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Start ssh daemon
 if [ -z ${SSHD_LOG_PATH} ]; then
