@@ -68,7 +68,7 @@ fi
 
 if [[ ${DEVEL,,} == "true" ]]; then
     if [[ -d /tmp/.vscode ]]; then
-        cp -r /tmp/.vscode /home/tunnel/.
+        cp -r /tmp/.vscode /home/tunnel/web/.
     fi
     if [[ -d /tmp/home ]]; then
         cp -r /tmp/home/* /home/tunnel/.
