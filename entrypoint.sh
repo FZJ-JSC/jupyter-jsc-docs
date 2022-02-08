@@ -74,7 +74,8 @@ if [[ ${DEVEL,,} == "true" ]]; then
     if [[ -d /tmp/home ]]; then
         cp -r /tmp/home/* /home/tunnel/.
     fi
-    apt update && apt install rsync vim
+    chown -R tunnel:users /home/tunnel
+    apt update && apt install -yq rsync vim
     while true; do
         sleep 30
     done
