@@ -4,6 +4,7 @@
 if [ -z ${SSHD_LOG_PATH} ]; then
     SSHD_LOG_PATH=/home/tunnel/sshd.log
 fi
+mkdir -p /run/sshd
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
 if [[ -n ${SSH_RO_PATH} ]]; then
