@@ -7,8 +7,9 @@ RUN apk update && apk upgrade && apk add bash mailcap
 # create directory for the app user
 RUN mkdir -p /home/tunnel/ssh_socket && mkdir -p /home/tunnel/.ssh
 
+
 # create the app user
-RUN adduser --uid 1000 -D --ingroup users tunnel
+RUN adduser --uid 1000 -D --gecos "" tunnel
 
 # create the appropriate directories
 ENV HOME=/home/tunnel
@@ -24,8 +25,9 @@ RUN apk update &&\
     -e "s/^AllowTcpForwarding no/AllowTcpForwarding yes/g" \
     -e "s/^#Port 22/Port 2222/g" \ 
     -e "s/^GatewayPorts no/GatewayPorts yes/g" \ 
-    /etc/ssh/sshd_config &&\
-    ssh-keygen -A
+    /etc/ssh/sshd_config && \
+    ssh-keygen -A && \
+    sed -i -e "s/^tunnel\:\!/tunnel:\*/g" /etc/shadow
 
 RUN echo tunnel:$(uuidgen) | chpasswd
 
