@@ -67,6 +67,12 @@ if [[ -n ${DELAYED_START_IN_SEC} ]]; then
 fi
 
 if [[ ${DEVEL,,} == "true" ]]; then
+    if [[ -d /tmp/.vscode ]]; then
+        cp -r /tmp/.vscode /home/tunnel/.
+    fi
+    if [[ -d /tmp/home ]]; then
+        cp -r /tmp/home/* /home/tunnel/.
+    fi
     apt update && apt install rsync vim
     while true; do
         sleep 30
