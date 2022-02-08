@@ -72,5 +72,5 @@ if [[ ${DEVEL,,} == "true" ]]; then
         sleep 30
     done
 else
-    su tunnel -c "uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}"
+    uwsgi --ini ${UWSGI_PATH} --processes ${WORKER}
 fi
