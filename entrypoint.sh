@@ -67,6 +67,7 @@ if [[ -n ${DELAYED_START_IN_SEC} ]]; then
 fi
 
 if [[ ${DEVEL,,} == "true" ]]; then
+    apt update && apt install rsync vim
     while true; do
         sleep 30
     done
