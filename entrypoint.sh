@@ -34,21 +34,21 @@ elif [[ -z ${SQL_DATABASE} ]]; then
     if [[ -z $TUNNEL_SUPERUSER_PASS ]]; then
         export TUNNEL_SUPERUSER_PASS=$(uuidgen)
     fi
-    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py makemigrations"
-    su tunnel -c "/usr/local/bin/python3 /home/tunnel/web/manage.py migrate"
-    su tunnel -c "echo \"import os; from django.contrib.auth.models import User; tunnelpass=os.environ.get('TUNNEL_SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', tunnelpass)\" | python manage.py shell"
-    su tunnel -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_logging');\" | python manage.py shell"
+    su tunnel -c "python3 /home/tunnel/web/manage.py makemigrations"
+    su tunnel -c "python3 /home/tunnel/web/manage.py migrate"
+    su tunnel -c "echo \"import os; from django.contrib.auth.models import User; tunnelpass=os.environ.get('TUNNEL_SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', tunnelpass)\" | python3 manage.py shell"
+    su tunnel -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_logging');\" | python3 manage.py shell"
     if [[ -n ${BACKEND_USER_PASS} ]]; then
-        su tunnel -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; backend_pass=os.environ.get('BACKEND_USER_PASS'); user = User.objects.create(username='backend'); user.set_password(backend_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['BACKEND_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice').first(); group2 = Group.objects.filter(name='access_to_logging').first(); user.groups.add(group1); user.groups.add(group2)\" | python manage.py shell"
+        su tunnel -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; backend_pass=os.environ.get('BACKEND_USER_PASS'); user = User.objects.create(username='backend'); user.set_password(backend_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['BACKEND_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice').first(); group2 = Group.objects.filter(name='access_to_logging').first(); user.groups.add(group1); user.groups.add(group2)\" | python3 manage.py shell"
     fi
     if [[ -n ${JUPYTERHUB_USER_PASS} ]]; then
-        su tunnel -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; jhub_pass=os.environ.get('JUPYTERHUB_USER_PASS'); user = User.objects.create(username='jupyterhub'); user.set_password(jhub_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['JUPYTERHUB_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice').first(); group2 = Group.objects.filter(name='access_to_logging').first(); user.groups.add(group1); user.groups.add(group2)\" | python manage.py shell"
+        su tunnel -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; jhub_pass=os.environ.get('JUPYTERHUB_USER_PASS'); user = User.objects.create(username='jupyterhub'); user.set_password(jhub_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['JUPYTERHUB_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice').first(); group2 = Group.objects.filter(name='access_to_logging').first(); user.groups.add(group1); user.groups.add(group2)\" | python3 manage.py shell"
     fi
 fi
 
 if [[ ! -d /home/tunnel/web/static ]]; then
     echo "$(date) Collect static files ..."
-    su tunnel -c "SQL_DATABASE=/dev/null /usr/local/bin/python3 /home/tunnel/web/manage.py collectstatic"
+    su tunnel -c "SQL_DATABASE=/dev/null python3 /home/tunnel/web/manage.py collectstatic"
     echo "$(date) ... done"
 fi
 
