@@ -1,15 +1,17 @@
 # Create your views here.
 import copy
 import logging
+import uuid
 
 from django.http.response import Http404
+from rest_framework import mixins
 from rest_framework import status
 from rest_framework import utils
-from rest_framework import viewsets
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 from . import utils
-from .models import RemoteModel
 from .models import TunnelModel
 from .serializers import RemoteSerializer
 from .serializers import TunnelSerializer
@@ -17,175 +19,93 @@ from jupyterjsc_tunneling.decorators import request_decorator
 from jupyterjsc_tunneling.permissions import HasGroupPermission
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 
+
 log = logging.getLogger(LOGGER_NAME)
 
 
-class TunnelViewSet(viewsets.ModelViewSet):
+class TunnelViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet,
+):
     serializer_class = TunnelSerializer
     queryset = TunnelModel.objects.all()
 
-    lookup_field = "backend_id"
+    lookup_field = "startuuidcode"
 
     permission_classes = [HasGroupPermission]
     required_groups = ["access_to_webservice"]
 
-    def get_kwargs(self, instance=None):
-        if instance:
-            kwargs = {
-                "backend_id": instance.backend_id,
-                "hostname": instance.hostname,
-                "local_port": instance.local_port,
-                "target_node": instance.target_node,
-                "target_port": instance.target_port,
-            }
-        else:
-            if type(self.request.data) != dict:
-                kwargs = {
-                    "backend_id": self.request.data["backend_id"],
-                    "hostname": self.request.data["hostname"],
-                    "target_node": self.request.data["target_node"],
-                    "target_port": self.request.data["target_port"],
-                }
-            else:
-                kwargs = copy.deepcopy(self.request.data)
-        kwargs["uuidcode"] = self.request.query_params.get("uuidcode", "no-uuidcode")
-        return kwargs
-
-    @request_decorator
-    def create(self, request, *args, **kwargs):
-        request_data = self.get_kwargs()
-        log.debug("Tunnel Create", extra=request_data)
-        request_data["local_port"] = utils.get_random_open_local_port()
-        data = copy.deepcopy(request_data)
-
-        # Manual check for uniqueness
-        backend_id = request.data["backend_id"]
-        prev_model = self.queryset.filter(backend_id=backend_id).first()
-        if prev_model is not None:
-            self.perform_destroy(prev_model, log.warning)
-
-        # start tunnel
-        try:
-            if not utils.start_tunnel(**data):
-                return Response(status=utils.COULD_NOT_START_TUNNEL)
-        except utils.SystemNotAvailableException:
-            return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
-
-        # create k8s service
-        try:
-            utils.k8s_svc("create", alert_admins=True, **data)
-        except utils.K8sActionException:
-            utils.stop_tunnel(**data)
-            return Response(status=utils.K8S_ACTION_ERROR)
-
-        # super().create with different data
-        serializer = self.get_serializer(data=request_data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+    def perform_create(self, serializer):
+        data = copy.deepcopy(serializer.validated_data)
+        data["uuidcode"] = self.request.query_params.dict().get(
+            "uuidcode", uuid.uuid4().hex
         )
-
-    @request_decorator
-    def retrieve(self, request, *args, **kwargs):
-        log.debug("Tunnel Retrieve", extra=kwargs)
-        instance = self.get_object()
-        data = {"running": True}
-        if not utils.is_port_in_use(instance.local_port):
-            data["running"] = False
-        return Response(data)
-
-    def perform_destroy(self, instance, log_func=None):
-        kwargs = self.get_kwargs(instance)
-        if log_func:
-            log_func("Delete tunnel", extra=kwargs)
         try:
-            utils.stop_tunnel(**kwargs)
-        except:
-            pass
-        try:
-            utils.k8s_svc("delete", alert_admins=False, **kwargs)
-        except:
-            pass
+            utils.start_tunnel(alert_admins=True, raise_exception=True, **data)
+            utils.k8s_svc("create", alert_admins=True, raise_exception=True, **data)
+        except Exception as e:
+            utils.stop_tunnel(alert_admins=False, raise_exception=False, **data)
+            raise e
+
+        return super().perform_create(serializer)
+
+    def perform_destroy(self, instance):
+        utils.stop_and_delete(
+            alert_admins=True, raise_exception=False, **instance.__dict__
+        )
         return super().perform_destroy(instance)
 
     @request_decorator
-    def destroy(self, request, *args, **kwargs):
-        log.debug("Tunnel Destroy", extra=kwargs)
-        instance = self.get_object()
-        self.perform_destroy(instance, log.info)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class RemoteViewSet(viewsets.ModelViewSet):
-    serializer_class = RemoteSerializer
-    queryset = RemoteModel.objects.all()
-
-    lookup_field = "hostname"
-
-    permission_classes = [HasGroupPermission]
-    required_groups = ["access_to_webservice"]
-
-    def get_kwargs(self, instance=None, data=None):
-        if instance:
-            kwargs = {
-                "hostname": instance.hostname,
-                "running": instance.running,
-                "updated_at": instance.updated_at,
-            }
-        elif data is None:
-            if type(self.request.data) != dict:
-                kwargs = {
-                    "hostname": self.request.data["hostname"],
-                }
-            else:
-                kwargs = copy.deepcopy(self.request.data)
-        else:
-            kwargs = copy.deepcopy(data)
-        kwargs["uuidcode"] = self.request.query_params.get("uuidcode", "no-uuidcode")
-        return kwargs
-
-    @request_decorator
     def create(self, request, *args, **kwargs):
-        kwargs = self.get_kwargs()
-        log.debug("Remote Create", extra=kwargs)
-        try:
-            running = utils.start_remote(**kwargs)
-        except utils.SystemNotAvailableException:
-            return Response(status=utils.SYSTEM_NOT_AVAILABLE_STATUS)
-        hostname = request.data["hostname"]
-        if type(hostname) == list:
-            hostname = hostname[0]
-        RemoteModel.objects.update_or_create(
-            hostname=request.data["hostname"], defaults={"running": running}
-        )
-        return Response(data={"running": running}, status=status.HTTP_201_CREATED)
+        return super().create(request, *args, **kwargs)
 
     @request_decorator
     def retrieve(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            kwargs = self.get_kwargs(instance)
-        except Http404 as e:
-            kwargs = self.get_kwargs(data=kwargs)
-        log.debug("Remote Retrieve", extra=kwargs)
-        running = utils.status_remote(**kwargs)
-        RemoteModel.objects.update_or_create(
-            hostname=kwargs["hostname"], defaults={"running": running}
-        )
-        return Response({"running": running})
+        return super().retrieve(request, *args, **kwargs)
+
+    @request_decorator
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @request_decorator
     def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            kwargs = self.get_kwargs(instance)
-        except Http404 as e:
-            kwargs = self.get_kwargs(data=kwargs)
-        log.debug("Remote Destroy", extra=kwargs)
-        utils.stop_remote(**kwargs)
-        RemoteModel.objects.update_or_create(
-            hostname=kwargs["hostname"], defaults={"running": False}
-        )
-        return Response()
+        return super().destroy(request, *args, **kwargs)
+
+
+class RemoteViewSet(GenericAPIView):
+    serializer_class = RemoteSerializer
+    permission_classes = [HasGroupPermission]
+    required_groups = ["access_to_webservice"]
+
+    def perform_create(self, data):
+        utils.start_remote(alert_admins=True, raise_exception=True, **data)
+
+    def perform_destroy(self):
+        data = copy.deepcopy(self.request.query_params.dict())
+        if "uuidcode" not in data.keys():
+            data["uuidcode"] = uuid.uuid4().hex
+        utils.stop_remote(alert_admins=False, raise_exception=True, **data)
+
+    @request_decorator
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = copy.deepcopy(serializer.validated_data)
+        self.perform_create(data)
+        # If it wouldn't be running, perform_create would have thrown an exception
+        data["running"] = True
+        return Response(data=data, status=200)
+
+    @request_decorator
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.query_params.dict())
+        serializer.is_valid(raise_exception=True)
+        return Response(data=serializer.validated_data, status=200)
+
+    @request_decorator
+    def delete(self, request, *args, **kwargs):
+        self.perform_destroy()
+        return Response(status=status.HTTP_204_NO_CONTENT)

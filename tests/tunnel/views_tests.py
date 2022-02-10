@@ -11,7 +11,6 @@ from .mocks import mocked_popen_init_forward_fail
 from .mocks import mocked_remote_popen_init
 from .mocks import mocked_remote_popen_init_218
 from tests.user_credentials import UserCredentials
-from tunnel.models import RemoteModel
 from tunnel.models import TunnelModel
 
 
@@ -26,55 +25,16 @@ class RemoteViewTests(UserCredentials):
         side_effect=mocked_remote_popen_init,
     )
     def test_create_data_received(self, mocked_popen_init):
-        url = reverse("remote-list")
+        url = "/api/remote/"
         resp = self.client.post(url, data=self.remote_data, format="json")
         self.assertTrue("running" in resp.data.keys())
-
-    @mock.patch(
-        "tunnel.utils.subprocess.Popen",
-        side_effect=mocked_remote_popen_init,
-    )
-    def test_create_updated_at(self, mocked_popen_init):
-        url = reverse("remote-list")
-        resp = self.client.post(url, data=self.remote_data, format="json")
-        self.assertTrue("running" in resp.data.keys())
-        models = RemoteModel.objects.all()
-        model = models[0]
-        upd1 = model.updated_at
-        resp = self.client.post(url, data=self.remote_data, format="json")
-        self.assertTrue("running" in resp.data.keys())
-        models = RemoteModel.objects.all()
-        model = models[0]
-        upd2 = model.updated_at
-        self.assertNotEqual(upd1, upd2)
-
-    @mock.patch(
-        "tunnel.utils.subprocess.Popen",
-        side_effect=mocked_remote_popen_init,
-    )
-    def test_create_model_created(self, mocked_popen_init):
-        url = reverse("remote-list")
-        self.assertEqual(len(RemoteModel.objects.all()), 0)
-        resp = self.client.post(url, data=self.remote_data, format="json")
-        self.assertEqual(resp.status_code, 201)
-        models = RemoteModel.objects.all()
-        model = models[0]
-        self.assertEqual(model.hostname, self.remote_data["hostname"])
-        self.assertTrue(model.running)
-        self.assertEqual(len(models), 1)
-        resp = self.client.post(url, data=self.remote_data, format="json")
-        self.assertEqual(resp.status_code, 201)
-        self.assertEqual(model.hostname, self.remote_data["hostname"])
-        self.assertTrue(model.running)
-        self.assertEqual(len(models), 1)
 
     @mock.patch(
         "tunnel.utils.subprocess.Popen",
         side_effect=mocked_remote_popen_init,
     )
     def test_retrieve_not_existing_running(self, mocked_popen_init):
-        url = reverse("remote-list")
-        url = f"{url}demo_site/"
+        url = "/api/remote/?hostname=demo_site"
         resp = self.client.get(url, format="json")
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.data["running"])
@@ -84,8 +44,7 @@ class RemoteViewTests(UserCredentials):
         side_effect=mocked_remote_popen_init_218,
     )
     def test_retrieve_not_existing_not_running(self, mocked_popen_init):
-        url = reverse("remote-list")
-        url = f"{url}demo_site/"
+        url = "/api/remote/?hostname=demo_site"
         resp = self.client.get(url, format="json")
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(resp.data["running"])
@@ -95,15 +54,14 @@ class RemoteViewTests(UserCredentials):
         side_effect=mocked_remote_popen_init_218,
     )
     def test_stop_not_existing(self, mocked_popen_init):
-        url = reverse("remote-list")
-        url = f"{url}demo_site/"
+        url = "/api/remote/?hostname=demo_site"
         resp = self.client.delete(url, format="json")
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 204)
 
 
 class TunnelViewTests(UserCredentials):
     tunnel_data = {
-        "backend_id": 5,
+        "startuuidcode": "uuidcode",
         "hostname": "hostname",
         "target_node": "targetnode",
         "target_port": 34567,
@@ -114,7 +72,7 @@ class TunnelViewTests(UserCredentials):
         "3",
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
         "-O",
         "check",
         f"tunnel_{tunnel_data['hostname']}",
@@ -125,7 +83,7 @@ class TunnelViewTests(UserCredentials):
         "3",
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
         "-O",
         "forward",
         f"tunnel_{tunnel_data['hostname']}",
@@ -137,7 +95,7 @@ class TunnelViewTests(UserCredentials):
         "3",
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
         "-v",
         "-O",
         "forward",
@@ -150,7 +108,7 @@ class TunnelViewTests(UserCredentials):
         "3",
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
         f"tunnel_{tunnel_data['hostname']}",
     ]
 
@@ -159,7 +117,7 @@ class TunnelViewTests(UserCredentials):
         "3",
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
         "-v",
         f"tunnel_{tunnel_data['hostname']}",
     ]
@@ -169,7 +127,7 @@ class TunnelViewTests(UserCredentials):
         "3",
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
         "-O",
         "cancel",
         f"tunnel_{tunnel_data['hostname']}",
@@ -181,7 +139,7 @@ class TunnelViewTests(UserCredentials):
         "3",
         "ssh",
         "-F",
-        os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+        os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
         "-v",
         "-O",
         "cancel",
@@ -201,7 +159,7 @@ class TunnelViewTests(UserCredentials):
         self.client.post(url, headers=self.header, data=self.tunnel_data, format="json")
         models = TunnelModel.objects.all()
         model = models[0]
-        self.assertEqual(model.backend_id, self.tunnel_data["backend_id"])
+        self.assertEqual(model.startuuidcode, self.tunnel_data["startuuidcode"])
         self.assertEqual(model.hostname, self.tunnel_data["hostname"])
         self.assertEqual(model.target_node, self.tunnel_data["target_node"])
         self.assertEqual(model.target_port, self.tunnel_data["target_port"])
@@ -236,23 +194,18 @@ class TunnelViewTests(UserCredentials):
         response = self.client.post(
             url, headers=self.header, data=self.tunnel_data, format="json"
         )
-        self.assertEqual(response.status_code, 550)
+        self.assertEqual(response.status_code, 500)
 
+        # First check call when trying to start tunnel
+        # Second check call when trying to stop tunnel
+        # Both fail, so no further calls
         self.assertEqual(
             mocked_popen_init.call_args_list[0][0][0],
             self.expected_popen_args_tunnel_check,
         )
         self.assertEqual(
             mocked_popen_init.call_args_list[1][0][0],
-            self.expected_popen_args_tunnel_create,
-        )
-        self.assertEqual(
-            mocked_popen_init.call_args_list[2][0][0],
-            self.expected_popen_args_tunnel_create,
-        )
-        self.assertEqual(
-            mocked_popen_init.call_args_list[3][0][0],
-            self.expected_popen_args_tunnel_create_v,
+            self.expected_popen_args_tunnel_check,
         )
 
     @mock.patch(
@@ -264,7 +217,7 @@ class TunnelViewTests(UserCredentials):
         response = self.client.post(
             url, headers=self.header, data=self.tunnel_data, format="json"
         )
-        self.assertEqual(response.status_code, 551)
+        self.assertEqual(response.status_code, 500)
 
         self.assertEqual(
             mocked_popen_init.call_args_list[0][0][0],
@@ -292,18 +245,10 @@ class TunnelViewTests(UserCredentials):
         response = self.client.post(
             url, headers=self.header, data=self.tunnel_data, format="json"
         )
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 500)
         self.assertEqual(
             mocked_popen_init.call_args_list[0][0][0],
             self.expected_popen_args_tunnel_check,
-        )
-        self.assertEqual(
-            mocked_popen_init.call_args_list[1][0][0],
-            self.expected_popen_args_tunnel_create,
-        )
-        self.assertEqual(
-            mocked_popen_init.call_args_list[2][0][0][:-1],
-            self.expected_popen_args_tunnel_forward,
         )
 
     @mock.patch(
@@ -355,10 +300,6 @@ class TunnelViewTests(UserCredentials):
             mocked_popen_init.call_args_list[3][0][0][:-1],
             self.expected_popen_args_tunnel_cancel,
         )
-        self.assertEqual(
-            mocked_popen_init.call_args_list[4][0][0][:-1],
-            self.expected_popen_args_tunnel_cancel_v,
-        )
 
     @mock.patch(
         "tunnel.utils.subprocess.Popen",
@@ -382,7 +323,7 @@ class TunnelViewTests(UserCredentials):
         "tunnel.utils.subprocess.Popen",
         side_effect=mocked_popen_init,
     )
-    def test_create_backend_id_already_exists(self, mocked_popen_init):
+    def test_create_startuuidcode_already_exists(self, mocked_popen_init):
         url = reverse("tunnel-list")
         response = self.client.post(
             url, headers=self.header, data=self.tunnel_data, format="json"

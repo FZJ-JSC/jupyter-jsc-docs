@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.apps import AppConfig
 from django.db.utils import OperationalError
@@ -19,16 +20,13 @@ class TunnelConfig(AppConfig):
     def start_tunnels_in_db(self):
         from .models import TunnelModel
 
-        kwargs = {"uuidcode": "StartUp"}
-        log.info("Start db-tunnels", extra=kwargs)
+        uuidcode = "StartUp Tunnel"
+        log.info("Start db-tunnels", extra={"uuidcode": uuidcode})
         tunnels = TunnelModel.objects.all()
         for tunnel in tunnels:
             try:
-                kwargs["backend_id"] = tunnel.backend_id
-                kwargs["hostname"] = tunnel.hostname
-                kwargs["local_port"] = tunnel.local_port
-                kwargs["target_node"] = tunnel.target_node
-                kwargs["target_port"] = tunnel.target_port
+                kwargs = tunnel.__dict__
+                kwargs["uuidcode"] = uuidcode
                 start_tunnel(**kwargs)
             except:
                 log.exception("Could not start ssh tunnel at StartUp", extra=kwargs)
@@ -48,15 +46,28 @@ class TunnelConfig(AppConfig):
                 except:
                     log.exception("Could not stop ssh tunnel", extra=kwargs)
 
-    def start_remote_in_db(self):
-        from .models import RemoteModel
-
+    def start_remote_in_config_file(self):
         kwargs = {"uuidcode": "StartUp"}
+        config_file_path = os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config")
+        try:
+            with open(config_file_path, "r") as f:
+                config_file = f.read().split("\n")
+        except:
+            log.critical(
+                "Could not load ssh config file during startup",
+                exc_info=True,
+                extra=kwargs,
+            )
+            return
+        remote_prefix = "Host remote_"
+        remote_hosts_lines = [
+            x[len(remote_prefix)] for x in config_file if x.startswith(remote_prefix)
+        ]
+        kwargs["remote_hosts"] = remote_hosts_lines
         log.info("Start db-remote-tunnels", extra=kwargs)
-        remotes = RemoteModel.objects.all()
-        for remote in remotes:
+        for hostname in remote_hosts_lines:
+            kwargs["hostname"] = hostname
             try:
-                kwargs["hostname"] = remote.hostname
                 start_remote(**kwargs)
             except:
                 log.exception(
@@ -66,7 +77,7 @@ class TunnelConfig(AppConfig):
     def ready(self):
         try:
             self.start_tunnels_in_db()
-            self.start_remote_in_db()
+            self.start_remote_in_config_file()
         except OperationalError:
             pass
         return super().ready()

@@ -1,5 +1,4 @@
 import copy
-import json
 import logging
 import os
 import socket
@@ -8,38 +7,21 @@ import subprocess
 from kubernetes import client
 from kubernetes import config
 
-from jupyterjsc_tunneling.decorators import TimedCacheProperty
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 
 log = logging.getLogger(LOGGER_NAME)
 
-SYSTEM_NOT_AVAILABLE_STATUS = 550
 
-
-class SystemNotAvailableException(Exception):
+class RemoteException(Exception):
     pass
 
 
-COULD_NOT_START_TUNNEL = 551
-
-
-class CouldNotStartTunnelException(Exception):
+class TunnelException(Exception):
     pass
 
 
-COULD_NOT_START_REMOTE = 552
-
-
-class CouldNotStartRemoteException(Exception):
-    pass
-
-
-K8S_ACTION_ERROR = 553
-
-
-class K8sActionException(Exception):
-    pass
+SYSTEM_NOT_AVAILABLE_ERROR_MESSAGE = "System is not available"
 
 
 def get_random_open_local_port():
@@ -161,17 +143,26 @@ def run_popen_cmd(
             f"{log_msg} failed. Action may be required",
             extra=log_extra,
         )
+        raise Exception(
+            f"unexpected returncode: {returncode} not in {expected_returncodes}"
+        )
     return returncode
 
 
 def check_tunnel_connection(func):
     def build_up_connection(*args, **kwargs):
         # check if ssh connection to the node is up
-        if (
-            run_popen_cmd("tunnel", "check", "SSH tunnel check connection", **kwargs)
-            != 0
-        ):
-            if (
+        try:
+            run_popen_cmd(
+                "tunnel",
+                "check",
+                "SSH tunnel check connection",
+                max_attempts=1,
+                **kwargs,
+            )
+        except:
+            # That's ok. Let's try to start the tunnel.
+            try:
                 run_popen_cmd(
                     "tunnel",
                     "create",
@@ -180,54 +171,66 @@ def check_tunnel_connection(func):
                     max_attempts=3,
                     **kwargs,
                 )
-                != 0
-            ):
-                raise SystemNotAvailableException(
-                    f"uuidcode={kwargs['uuidcode']} - Could not connect to {kwargs['hostname']}"
+            except:
+                # That's not ok. We could not connect to the system
+                raise TunnelException(
+                    f"System not available: Could not connect via ssh to {kwargs['hostname']}",
+                    f"Request identification: {kwargs['uuidcode']}",
                 )
         return func(*args, **kwargs)
 
     return build_up_connection
 
 
-class TimedCachedProperties:
-    @TimedCacheProperty(timeout=60)
-    def system_config(self):
-        systems_config_path = os.environ.get("SYSTEMS_PATH", "")
-        with open(systems_config_path, "r") as f:
-            systems_config = json.load(f)
-        return systems_config
-
-
-@check_tunnel_connection
-def stop_tunnel(**kwargs):
-    run_popen_cmd(
-        "tunnel",
-        "cancel",
-        "SSH stop tunnel",
-        alert_admins=True,
-        max_attempts=2,
-        **kwargs,
+def stop_and_delete(alert_admins=False, raise_exception=False, **kwargs):
+    stop_tunnel(alert_admins=alert_admins, raise_exception=raise_exception, **kwargs)
+    k8s_svc(
+        "delete", alert_admins=alert_admins, raise_exception=raise_exception, **kwargs
     )
 
 
 @check_tunnel_connection
-def start_tunnel(**kwargs):
-    return (
+def stop_tunnel(alert_admins=True, raise_exception=True, **kwargs):
+    try:
+        run_popen_cmd(
+            "tunnel",
+            "cancel",
+            "SSH stop tunnel",
+            alert_admins=alert_admins,
+            max_attempts=1,
+            **kwargs,
+        )
+    except Exception as e:
+        alert_admins_log[alert_admins](
+            "Could not stop ssh tunnel", extra=kwargs, exc_info=True
+        )
+        if raise_exception:
+            raise TunnelException("Could not stop ssh tunnel", str(e))
+
+
+@check_tunnel_connection
+def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
+    try:
         run_popen_cmd(
             "tunnel",
             "forward",
             "SSH start tunnel",
-            alert_admins=True,
+            alert_admins=alert_admins,
             max_attempts=3,
-            **kwargs,
+            **validated_data,
         )
-        == 0
-    )
+    except Exception as e:
+        alert_admins_log[alert_admins](
+            "Could not start tunnel", extra=validated_data, exc_info=True
+        )
+        if raise_exception:
+            raise TunnelException(
+                "Could not forward port to system via ssh tunnel", str(e)
+            )
 
 
-def start_remote(**kwargs):
-    return (
+def start_remote(alert_admins=True, raise_exception=True, **validated_data):
+    try:
         run_popen_cmd(
             "remote",
             "start",
@@ -235,41 +238,57 @@ def start_remote(**kwargs):
             alert_admins=True,
             max_attempts=3,
             expected_returncodes=[217],
-            **kwargs,
+            **validated_data,
         )
-        == 217
-    )
+    except Exception as e:
+        alert_admins_log[alert_admins](
+            "Could not start remote ssh tunnel", extra=validated_data, exc_info=True
+        )
+        if raise_exception:
+            raise TunnelException("Could not start remote ssh tunnel", str(e))
 
 
-def status_remote(**kwargs):
-    return (
+def status_remote(alert_admins=True, raise_exception=True, **data):
+    try:
+        return (
+            run_popen_cmd(
+                "remote",
+                "status",
+                "SSH status remote",
+                alert_admins=alert_admins,
+                max_attempts=1,
+                expected_returncodes=[217, 218],
+                **data,
+            )
+            == 217
+        )
+    except Exception as e:
+        alert_admins_log[alert_admins](
+            "Could not receive status from remote ssh tunnel", extra=data, exc_info=True
+        )
+        if raise_exception:
+            raise RemoteException(
+                "Could not receive status from remote ssh tunnel", str(e)
+            )
+
+
+def stop_remote(alert_admins=True, raise_exception=True, **data):
+    try:
         run_popen_cmd(
             "remote",
-            "status",
-            "SSH status remote",
-            alert_admins=False,
-            max_attempts=1,
-            expected_returncodes=[217, 218],
-            **kwargs,
+            "stop",
+            "SSH stop remote",
+            alert_admins=True,
+            max_attempts=3,
+            expected_returncodes=[218],
+            **data,
         )
-        == 217
-    )
-
-
-def stop_remote(**kwargs):
-    run_popen_cmd(
-        "remote",
-        "stop",
-        "SSH stop remote",
-        alert_admins=True,
-        max_attempts=3,
-        expected_returncodes=[218],
-        **kwargs,
-    ) == 218
-
-
-import os
-from kubernetes import client, config
+    except Exception as e:
+        alert_admins_log[alert_admins](
+            "Could not stop remote ssh tunnel", extra=data, exc_info=True
+        )
+        if raise_exception:
+            raise RemoteException("Could not stop remote ssh tunnel", str(e))
 
 
 def k8s_get_client():
@@ -277,8 +296,8 @@ def k8s_get_client():
     return client.CoreV1Api()
 
 
-def k8s_get_svc_name(backend_id):
-    return f"{os.environ.get('DEPLOYMENT_NAME', 'tunneling')}-{backend_id}"
+def k8s_get_svc_name(startuuidcode):
+    return f"{os.environ.get('DEPLOYMENT_NAME', 'tunneling')}-{startuuidcode}"[0:63]
 
 
 def k8s_get_svc_namespace():
@@ -287,7 +306,7 @@ def k8s_get_svc_namespace():
 
 def k8s_create_svc(**kwargs):
     v1 = k8s_get_client()
-    name = k8s_get_svc_name(kwargs["backend_id"])
+    name = k8s_get_svc_name(kwargs["startuuidcode"])
     namespace = k8s_get_svc_namespace()
     service_manifest = {
         "apiVersion": "v1",
@@ -316,16 +335,16 @@ def k8s_create_svc(**kwargs):
     ).to_dict()
 
 
-# def k8s_get_svc(backend_id, **kwargs):
+# def k8s_get_svc(startuuidcode, **kwargs):
 #     v1 = k8s_get_client()
-#     name = k8s_get_svc_name(backend_id)
+#     name = k8s_get_svc_name(startuuidcode)
 #     namespace = k8s_get_svc_namespace()
 #     return v1.read_namespaced_service(name=name, namespace=namespace).to_dict()
 
 
 def k8s_delete_svc(**kwargs):
     v1 = k8s_get_client()
-    name = k8s_get_svc_name(kwargs["backend_id"])
+    name = k8s_get_svc_name(kwargs["startuuidcode"])
     namespace = k8s_get_svc_namespace()
     return v1.delete_namespaced_service(name=name, namespace=namespace).to_dict()
 
@@ -343,7 +362,7 @@ k8s_func = {
 }
 
 
-def k8s_svc(action, alert_admins=False, **kwargs):
+def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
     log_extra = copy.deepcopy(kwargs)
     k8s_log[action](f"Call K8s API to {action} svc ...", extra=log_extra)
     try:
@@ -353,7 +372,7 @@ def k8s_svc(action, alert_admins=False, **kwargs):
         alert_admins_log[alert_admins](
             f"Call K8s API to {action} svc failed", exc_info=True, extra=log_extra
         )
-        raise K8sActionException(
-            f"uuidcode={log_extra.get('uuidcode', 'no-uuidcode')} - Call K8s API to {action} svc failed"
-        )
-    k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)
+        if raise_exception:
+            raise TunnelException(f"Call K8s API to {action} svc failed", str(e))
+    else:
+        k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)

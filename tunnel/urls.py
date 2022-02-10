@@ -17,11 +17,9 @@ from django.urls import include
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import RemoteViewSet
 from .views import TunnelViewSet
 
 router = DefaultRouter()
 router.register("tunnel", TunnelViewSet, basename="tunnel")
-router.register("remote", RemoteViewSet, basename="remote")
 
 urlpatterns = [path("", include(router.urls))]

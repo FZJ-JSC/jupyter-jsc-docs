@@ -1,15 +1,3 @@
-from jupyterjsc_tunneling.decorators import TimedCacheProperty
-
-
-class TimedCacheClass:
-    return_dict_cached_called = 0
-
-    @TimedCacheProperty(timeout=1)
-    def return_dict_cached(self, *args, **kwargs):
-        self.return_dict_cached_called += 1
-        return {"key": "value"}
-
-
 def mocked_popen_init(*args, **kwargs):
     return PopenMocked(*args, **kwargs)
 

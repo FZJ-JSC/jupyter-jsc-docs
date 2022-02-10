@@ -4,6 +4,8 @@ import logging
 from django.urls import reverse
 
 from jupyterjsc_tunneling.settings import LOGGER_NAME
+from logs import utils
+from logs.models import HandlerModel
 from tests.user_credentials import UserCredentials
 
 
@@ -17,6 +19,50 @@ class LogsUnitTest(UserCredentials):
             "stream": "ext://sys.stdout",
         },
     }
+
+    def test_minimal_post(self):
+        url = reverse("handler-list")
+        response_post = self.client.post(url, data={"handler": "stream"}, format="json")
+        self.assertEqual(response_post.status_code, 201)
+        model = HandlerModel.objects.all()[0]
+        self.assertEqual(model.configuration, utils.default_configurations["stream"])
+
+    def test_only_send_level(self):
+        url = reverse("handler-list")
+        response_post = self.client.post(
+            url,
+            data={"handler": "stream", "configuration": {"level": 5}},
+            format="json",
+        )
+        self.assertEqual(response_post.status_code, 201)
+        model = HandlerModel.objects.all()[0]
+        expected_config = copy.deepcopy(utils.default_configurations["stream"])
+        expected_config["level"] = 5
+        self.assertEqual(model.configuration, expected_config)
+
+    def test_unsupported_level(self):
+        url = reverse("handler-list")
+        response_post = self.client.post(
+            url,
+            data={"handler": "stream", "configuration": {"level": 3}},
+            format="json",
+        )
+        self.assertEqual(response_post.status_code, 400)
+        sw = response_post.data[0].startswith("Unsupported level: 3. Supported levels:")
+        self.assertTrue(sw, f"Unexpected error msg: {response_post.data[0]}")
+
+    def test_unsupported_type(self):
+        url = reverse("handler-list")
+        response_post = self.client.post(
+            url,
+            data={"handler": "file", "configuration": {"filename": 3}},
+            format="json",
+        )
+        self.assertEqual(response_post.status_code, 400)
+        self.assertEqual(
+            response_post.data[0],
+            "filename in configuration must be of type [<class 'str'>] not <class 'int'>",
+        )
 
     def test_list(self):
         url = reverse("handler-list")

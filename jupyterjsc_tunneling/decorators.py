@@ -9,6 +9,7 @@ from .settings import LOGGER_NAME
 from logs.utils import create_logging_handler
 from logs.utils import remove_logging_handler
 
+
 log = logging.getLogger(LOGGER_NAME)
 
 """
@@ -51,31 +52,16 @@ def request_decorator(func):
         try:
             return update_logging_handler(*args, **kwargs)
         except Exception as e:
-            if hasattr(e, "__module__") and e.__module__ == "django.http.response":
+            if hasattr(e, "__module__") and e.__module__ in [
+                "django.http.response",
+                "rest_framework.exceptions",
+            ]:
                 raise e
-            log.exception("Unexpected Error")
-            return Response(status=500)
+            if e.__class__.__name__ == "TunnelException":
+                details = {"error": e.args[0], "detailed_error": e.args[1]}
+            else:
+                details = {"error": "Unexpected Error", "detailed_error": str(e)}
+            log.debug("Error Handling, return 500.", extra=details)
+            return Response(details, status=500)
 
     return catch_all_exceptions
-
-
-# source: https://github.com/HumanBrainProject/pyunicore/blob/285a76b3e2f5d8a85b8a23ece05543641cfa1094/pyunicore/client.py#L82
-class TimedCacheProperty(object):
-    """decorator to create get only property; values are fetched once per `timeout`"""
-
-    def __init__(self, timeout):
-        self._timeout = timedelta(seconds=timeout)
-        self._func = None
-        self._values = {}
-
-    def __get__(self, instance, cls):
-        last_lookup, value = self._values.get(instance, (datetime.min, None))
-        now = datetime.now()
-        if self._timeout < now - last_lookup:
-            value = self._func(instance)
-            self._values[instance] = now, value
-        return value
-
-    def __call__(self, func):
-        self._func = func
-        return self

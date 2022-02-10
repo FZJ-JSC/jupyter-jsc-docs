@@ -6,6 +6,8 @@ from jsonformatter import JsonFormatter
 
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 
+log = logging.getLogger(LOGGER_NAME)
+
 """
 This class allows us to log with extra arguments
 log.info("message", extra={"key1": "value1", "key2": "value2"})
@@ -83,25 +85,24 @@ supported_formatter_kwargs = {
 }
 
 
-def create_logging_handler(handler_name, **kwargs):
-    formatter_name = kwargs.pop("formatter")
-    level = get_level(kwargs.pop("level"))
+def create_logging_handler(handler_name, **configuration):
+    log.debug(f"Add handler ({handler_name}) ...", extra=configuration)
+    formatter_name = configuration.pop("formatter")
+    level = get_level(configuration.pop("level"))
     # catch some special cases
     if handler_name == "stream":
-        if kwargs["stream"] == "ext://sys.stdout":
-            kwargs["stream"] = sys.stdout
+        if configuration["stream"] == "ext://sys.stdout":
+            configuration["stream"] = sys.stdout
         else:
-            kwargs["stream"] = sys.stderr
+            configuration["stream"] = sys.stderr
     elif handler_name == "syslog":
-        if kwargs.get("socktype", "") == "ext://socket.SOCK_STREAM":
-            kwargs["socktype"] = socket.SOCK_STREAM
+        if configuration.get("socktype", "") == "ext://socket.SOCK_STREAM":
+            configuration["socktype"] = socket.SOCK_STREAM
         else:
-            kwargs["socktype"] = socket.SOCK_DGRAM
-        kwargs["address"] = tuple(kwargs["address"])
-    if "class" in kwargs.keys():
-        del kwargs["class"]
+            configuration["socktype"] = socket.SOCK_DGRAM
+        configuration["address"] = tuple(configuration["address"])
     # Create handler, formatter, and add it
-    handler = supported_handler_classes[handler_name](**kwargs)
+    handler = supported_handler_classes[handler_name](**configuration)
     formatter = supported_formatter_classes[formatter_name](
         **supported_formatter_kwargs[formatter_name]
     )
@@ -110,9 +111,36 @@ def create_logging_handler(handler_name, **kwargs):
     handler.setFormatter(formatter)
     logger = logging.getLogger(LOGGER_NAME)
     logger.addHandler(handler)
+    log.debug(f"... handler added ({handler_name})", extra=configuration)
 
 
 def remove_logging_handler(handler_name):
     logger = logging.getLogger(LOGGER_NAME)
     logger_handlers = logger.handlers
     logger.handlers = [x for x in logger_handlers if x.name != handler_name]
+
+
+default_configurations = {
+    "stream": {"formatter": "simple", "level": 10, "stream": "ext://sys.stdout"},
+    "file": {
+        "formatter": "simple",
+        "level": 10,
+        "filename": "/tmp/file.log",
+        "when": "midnight",
+        "backupCount": 7,
+    },
+    "smtp": {
+        "formatter": "simple",
+        "level": 10,
+        "mailhost": "",
+        "fromaddr": "",
+        "toaddrs": [],
+        "subject": "",
+    },
+    "syslog": {
+        "formatter": "json",
+        "level": 10,
+        "address": ["127.0.0.1", 514],
+        "socktype": "ext://socket.SOCK_DGRAM",
+    },
+}

@@ -9,27 +9,10 @@ from .mocks import mocked_popen_init
 from .mocks import mocked_popen_init_all_fail
 from .mocks import mocked_popen_init_cancel_fail
 from .mocks import mocked_popen_init_check_fail
-from .mocks import TimedCacheClass
 from tunnel import utils
 
 
 class TunnelUtilsTests(APITestCase):
-    timedcached = utils.TimedCachedProperties()
-
-    def test_timed_cache_property(self):
-        tcc = TimedCacheClass()
-        tcc.return_dict_cached
-        tcc.return_dict_cached
-        tcc.return_dict_cached
-        self.assertEqual(tcc.return_dict_cached_called, 1)
-        time.sleep(1.5)
-        tcc.return_dict_cached
-        self.assertEqual(tcc.return_dict_cached_called, 2)
-
-    def test_get_systems_config_is_dict(self):
-        value = self.timedcached.system_config
-        self.assertEqual(type(value), dict)
-
     def test_is_port_in_use(self):
         port = utils.get_random_open_local_port()
         self.assertFalse(utils.is_port_in_use(port), "Port is in use")
@@ -56,7 +39,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "check",
             f"tunnel_{kwargs['hostname']}",
@@ -66,7 +49,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "forward",
             f"tunnel_{kwargs['hostname']}",
@@ -94,7 +77,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "check",
             f"tunnel_{kwargs['hostname']}",
@@ -104,7 +87,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_3 = [
@@ -112,7 +95,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "forward",
             f"tunnel_{kwargs['hostname']}",
@@ -145,7 +128,7 @@ class TunnelUtilsTests(APITestCase):
             utils.start_tunnel(**kwargs)
         self.assertEqual(
             e.exception.args[0],
-            f"uuidcode={kwargs['uuidcode']} - Could not connect to {kwargs['hostname']}",
+            "System not available: Could not connect via ssh to hostname",
         )
         self.assertEqual(mocked_popen_init_all_fail.call_count, 4)
 
@@ -167,7 +150,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "check",
             f"tunnel_{kwargs['hostname']}",
@@ -177,7 +160,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "cancel",
             f"tunnel_{kwargs['hostname']}",
@@ -205,7 +188,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "check",
             f"tunnel_{kwargs['hostname']}",
@@ -215,7 +198,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_3 = [
@@ -223,7 +206,7 @@ class TunnelUtilsTests(APITestCase):
             "3",
             "ssh",
             "-F",
-            os.environ.get("SSHCONFIGFILE", "~/.ssh/config"),
+            os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             "-O",
             "cancel",
             f"tunnel_{kwargs['hostname']}",
@@ -256,7 +239,7 @@ class TunnelUtilsTests(APITestCase):
             utils.stop_tunnel(**kwargs)
         self.assertEqual(
             e.exception.args[0],
-            f"uuidcode={kwargs['uuidcode']} - Could not connect to {kwargs['hostname']}",
+            "System not available: Could not connect via ssh to hostname",
         )
         self.assertEqual(mocked_popen_init_all_fail.call_count, 4)
 
@@ -272,5 +255,5 @@ class TunnelUtilsTests(APITestCase):
             "target_node": "targetnode",
             "target_port": 34567,
         }
-        utils.stop_tunnel(**kwargs)
-        self.assertEqual(mocked_popen_init_cancel_fail.call_count, 3)
+        utils.stop_tunnel(raise_exception=False, **kwargs)
+        self.assertEqual(mocked_popen_init_cancel_fail.call_count, 2)

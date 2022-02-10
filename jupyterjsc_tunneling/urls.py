@@ -18,9 +18,12 @@ from django.http import HttpResponse
 from django.urls import include
 from django.urls import path
 
+from tunnel.views import RemoteViewSet
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("tunnel.urls")),
+    path("api/remote/", RemoteViewSet.as_view(), name="remote"),
     path("api/health/", lambda r: HttpResponse()),
     path("api/logs/", include("logs.urls")),
     path("api-auth/", include("rest_framework.urls")),
