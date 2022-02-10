@@ -74,8 +74,8 @@ unittest:
     - echo "Give UNICORE-TSI time to fully start"; sleep 10
     - set -a; source ${CI_PROJECT_DIR}/tests/config/cicd/.envs ; set +a
     - mkdir -p /tmp/keys && mkdir -p /tmp/ssh_socket && echo "$TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY" >> /tmp/keys/tunnel && echo "$TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY" >> /tmp/keys/remote && chmod 400 /tmp/keys/tunnel && chmod 400 /tmp/keys/remote
-    - pytest -c ${CI_PROJECT_DIR}/tests/logs_tests/pytest.ini
-    - pytest -c ${CI_PROJECT_DIR}/tests/tunnel_tests/pytest.ini
+    - pytest -c ${CI_PROJECT_DIR}/tests/logs/pytest.ini
+    - pytest -c ${CI_PROJECT_DIR}/tests/tunnel/pytest.ini
   rules:
     - if: $RUN_UNIT_TESTS == "True"
 

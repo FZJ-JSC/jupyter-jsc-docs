@@ -1,6 +1,3 @@
-import socket
-import sys
-
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -123,20 +120,6 @@ class HandlerSerializer(serializers.ModelSerializer):
         handler_name = data["handler"]
         configuration = default_configurations[handler_name]
         for key, value in data.get("configuration", {}).items():
-            # catch some special cases
-            if key == "stream":
-                if value == "ext://sys.stdout":
-                    configuration["stream"] = sys.stdout
-                elif value == "ext://sys.stderr":
-                    configuration["stream"] = sys.stderr
-            elif key == "socktype":
-                if value == "ext://socket.SOCK_STREAM":
-                    configuration["socktype"] = socket.SOCK_STREAM
-                elif value == "ext://socket.SOCK_DGRAM":
-                    configuration["socktype"] = socket.SOCK_DGRAM
-            elif key == "address":
-                configuration["address"] = tuple(value)
-            else:
-                configuration[key] = value
+            configuration[key] = value
         data["configuration"] = configuration
         return super().to_internal_value(data)
