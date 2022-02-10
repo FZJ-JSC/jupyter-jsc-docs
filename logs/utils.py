@@ -89,18 +89,7 @@ def create_logging_handler(handler_name, **configuration):
     log.debug(f"Add handler ({handler_name}) ...", extra=configuration)
     formatter_name = configuration.pop("formatter")
     level = get_level(configuration.pop("level"))
-    # catch some special cases
-    if handler_name == "stream":
-        if configuration["stream"] == "ext://sys.stdout":
-            configuration["stream"] = sys.stdout
-        else:
-            configuration["stream"] = sys.stderr
-    elif handler_name == "syslog":
-        if configuration.get("socktype", "") == "ext://socket.SOCK_STREAM":
-            configuration["socktype"] = socket.SOCK_STREAM
-        else:
-            configuration["socktype"] = socket.SOCK_DGRAM
-        configuration["address"] = tuple(configuration["address"])
+
     # Create handler, formatter, and add it
     handler = supported_handler_classes[handler_name](**configuration)
     formatter = supported_formatter_classes[formatter_name](
@@ -121,7 +110,7 @@ def remove_logging_handler(handler_name):
 
 
 default_configurations = {
-    "stream": {"formatter": "simple", "level": 10, "stream": "ext://sys.stdout"},
+    "stream": {"formatter": "simple", "level": 10, "stream": sys.stdout},
     "file": {
         "formatter": "simple",
         "level": 10,
@@ -141,6 +130,6 @@ default_configurations = {
         "formatter": "json",
         "level": 10,
         "address": ["127.0.0.1", 514],
-        "socktype": "ext://socket.SOCK_DGRAM",
+        "socktype": socket.SOCK_DGRAM,
     },
 }
