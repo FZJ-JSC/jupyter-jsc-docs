@@ -16,7 +16,7 @@ class FunctionalTests(unittest.TestCase):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Basic {os.environ.get('TUNNEL_JHUB_BASIC', '')}",
+        "Authorization": os.environ.get("TUNNEL_JHUB_BASIC", ""),
     }
 
     def setUp(self):
