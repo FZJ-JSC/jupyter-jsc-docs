@@ -1,9 +1,4 @@
 #!/bin/bash
-if [[ -z ${1} ]]; then
-    echo "Argument (Namespace) required. Run 'bash create_resources.sh namespace'"
-    exit 1
-fi
-
 DEVEL_TUNNEL="false"
 
 UNITY_VERSION="3.8.1-k8s-1"
@@ -18,7 +13,7 @@ BASE=$(dirname $BASE_TESTS)
 ID_LONG=$(uuidgen | tr 'A-Z' 'a-z')
 ID=${ID_LONG:0:8}
 NEW_DIR="tests"
-NAMESPACE=${1}
+NAMESPACE="gitlab"
 echo "Create yaml files and JupyterHub configurations for unique identifier: ${ID}"
 
 # Create Certs
