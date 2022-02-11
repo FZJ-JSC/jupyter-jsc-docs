@@ -27,8 +27,8 @@ stages:
   - functional-tests
 
 variables:
-  CURRENT_RC_TAG: "af6be110"
-  UNICORE_SERVER_VERSION: "8.3.0-ljupyter-3"
+  CURRENT_RC_TAG: "31cd2434"
+  UNICORE_SERVER_VERSION: "8.3.0-5"
   TUNNEL_SECRET_KEY: $TUNNEL_SECRET_KEY
   TUNNEL_SUPERUSER_PASS: $TUNNEL_SUPERUSER_PASS
   TUNNEL_SUPERUSER_PASS_B64: $TUNNEL_SUPERUSER_PASS_B64
@@ -43,8 +43,9 @@ workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == "devel"
       variables:
-        RUN_UNIT_TESTS: "True"
+        RUN_UNIT_TESTS: "fTrue"
         BUILD_COMMIT_TAG: "fTrue"
+        FUNCTIONAL_TEST_TAG: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH == "devel-ft"
       variables:
         RUN_UNIT_TESTS: "False"
@@ -94,19 +95,25 @@ kaniko-build:
 functional-tests-in-k8s:
   stage: functional-tests
   image: 
-    name: python:3.9.9-slim
+    name: python:3.9.10-slim
     entrypoint: [""]
   before_script:
+    - apt update && apt install -y apt-transport-https ca-certificates curl keychain uuid-runtime
+    - curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    - echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
+    - apt update && apt install -y kubectl
     - pip install -r ${CI_PROJECT_DIR}/tests/functional_tests/requirements.txt
     - export CA_AUTH_PATH="/tmp/k8s_ca.crt"
     - echo -n "${K8S_TEST_CLUSTER_CA_AUTH_DATA}" | base64 -d > ${CA_AUTH_PATH}
   script:
+    - sleep 1200
     - export FUNCTIONAL_TESTS_SSH_CONFIG=$(sed -e "s/SUFFIX/${CI_COMMIT_SHORT_SHA}/g" tests/config/functional_tests/ssh_config | base64 -w 0)
     - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
   rules:
     - if: $FUNCTIONAL_TEST_TAG
 
 kaniko-build-tag:
+  when: manual
   stage: build-tag
   image:
     name: gcr.io/kaniko-project/executor:debug

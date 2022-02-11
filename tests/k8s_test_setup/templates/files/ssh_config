@@ -1,0 +1,26 @@
+Host jupyterhub-<ID>
+    HostName localhost
+    User jupyterhub
+    IdentityFile <DIR>/<ID>/keypairs/devel
+    Port 2222
+    LogLevel ERROR
+    UserKnownHostsFile /dev/null
+    StrictHostKeyChecking no
+
+Host tunnel-<ID>
+    HostName localhost
+    User tunnel
+    IdentityFile <DIR>/<ID>/keypairs/devel
+    Port 2223
+    LogLevel ERROR
+    UserKnownHostsFile /dev/null
+    StrictHostKeyChecking no
+
+Host backend-<ID>
+    HostName localhost
+    User backend
+    IdentityFile <DIR>/<ID>/keypairs/devel
+    Port 2224
+    LogLevel ERROR
+    UserKnownHostsFile /dev/null
+    StrictHostKeyChecking no

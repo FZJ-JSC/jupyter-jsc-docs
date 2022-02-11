@@ -1,0 +1,105 @@
+apiVersion:  v1
+kind: Service
+metadata:
+  name: tunnel-<ID>
+  namespace: <NAMESPACE>
+spec:
+  selector:
+    app: tunnel-<ID>
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    - name: ssh
+      port: 2222
+      protocol: TCP
+      targetPort: 2222
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tunnel-<ID>
+  namespace: <NAMESPACE>
+spec:
+      securityContext:
+        fsGroup: 100
+      imagePullSecrets:
+      - name: gitlab-registry
+      containers:
+      - env:
+        - name: SSH_RO_PATH
+          value: "/tmp/ssh_ro"
+        - name: SSHCONFIGFILE
+          value: "/home/tunnel/.ssh/config"
+        - name: DEBUG
+          value: "true"
+        - name: TUNNEL_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: tunnel-drf-<ID>
+              key: tunnel_secret
+              optional: false
+        - name: TUNNEL_SUPERUSER_PASS
+          valueFrom:
+            secretKeyRef:
+              name: tunnel-drf-<ID>
+              key: superuser_pass
+              optional: false
+        - name: BACKEND_USER_PASS
+          valueFrom:
+            secretKeyRef:
+              name: tunnel-drf-<ID>
+              key: backend_pass
+              optional: false
+        - name: JUPYTERHUB_USER_PASS
+          valueFrom:
+            secretKeyRef:
+              name: tunnel-drf-<ID>
+              key: jupyterhub_pass
+              optional: false
+        image: registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/tunneling-relaunch:<TUNNEL_VERSION>
+        imagePullPolicy: Always
+        name: tunnel-<ID>
+        volumeMounts:
+        - name: certs
+          mountPath: /tmp/ssh_ro/ca-root.pem
+          subPath: ca-root.pem
+        - name: certs
+          mountPath: /tmp/ssh_ro/tunnel.key
+          subPath: tunnel.key
+        - name: certs
+          mountPath: /tmp/ssh_ro/tunnel.crt
+          subPath: tunnel.crt
+        - name: certs
+          mountPath: /tmp/ssh_ro/tunnel.p12
+          subPath: tunnel.p12
+        - name: files
+          mountPath: /home/tunnel/web/uwsgi.ini
+          subPath: uwsgi.ini
+        - name: files
+          mountPath: /tmp/ssh_ro/config
+          subPath: config
+        - name: files
+          mountPath: /tmp/ssh_ro/authorized_keys
+          subPath: authorized_keys
+        - name: keypairs
+          mountPath: /tmp/ssh_ro/tunnel
+          subPath: tunnel
+        - name: keypairs
+          mountPath: /tmp/ssh_ro/remote
+          subPath: remote
+      volumes:
+      - name: files
+        configMap:
+          defaultMode: 400
+          name: tunnel-files-<ID>
+      - name: certs
+        secret:
+          defaultMode: 400
+          secretName: certs-<ID>
+      - name: keypairs
+        secret:
+          defaultMode: 400
+          secretName: keypairs-<ID>
