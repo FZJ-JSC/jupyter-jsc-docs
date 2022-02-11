@@ -21,6 +21,9 @@ class HandlerViewSet(viewsets.ModelViewSet):
     permission_classes = [HasGroupPermission]
     required_groups = ["access_to_logging"]
 
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
 
 class LogTestViewSet(viewsets.GenericViewSet):
     permission_classes = [HasGroupPermission]

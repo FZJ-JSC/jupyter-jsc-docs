@@ -28,7 +28,7 @@ class LogsConfig(AppConfig):
                 self._log(5, message, args, **kws)
 
         logging.Logger.trace = trace_func
-        logging.getLogger(LOGGER_NAME).setLevel(5)
+        logging.getLogger(LOGGER_NAME).setLevel(20)
         logging.getLogger(LOGGER_NAME).propagate = False
         logging.getLogger().setLevel(40)
         logging.getLogger().propagate = False

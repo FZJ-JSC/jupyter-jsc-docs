@@ -9,7 +9,8 @@
             "program": "${workspaceFolder}/manage.py",
             "args": [
                 "runserver",
-                "9000"
+                "9000",
+                "--insecure"
             ],
             "django": true,
             "justMyCode": false

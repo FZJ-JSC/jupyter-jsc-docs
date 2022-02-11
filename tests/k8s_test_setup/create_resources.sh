@@ -1,9 +1,15 @@
 #!/bin/bash
+
+if [[ -n ${1} ]]; then
+    TUNNEL_VERSION=${1}
+else
+    TUNNEL_VERSION="1.0.0-26"
+fi
+
 DEVEL_TUNNEL="false"
 
 UNITY_VERSION="3.8.1-k8s-1"
 UNICORE_VERSION="8.3.0-5"
-TUNNEL_VERSION="1.0.0-26"
 
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -12,7 +18,7 @@ BASE=$(dirname $BASE_TESTS)
 
 ID_LONG=$(uuidgen | tr 'A-Z' 'a-z')
 ID=${ID_LONG:0:8}
-NEW_DIR="tests"
+NEW_DIR="current"
 NAMESPACE="gitlab"
 echo "Create yaml files and JupyterHub configurations for unique identifier: ${ID}"
 
@@ -145,7 +151,6 @@ if [[ -z $CI_PROJECT_DIR ]]; then
     fi
     echo "${IP} tunnel-${ID}.${NAMESPACE}.svc unity-${ID}.${NAMESPACE}.svc unicore-${ID}.${NAMESPACE}.svc"
     read -p "Add the line above to /etc/hosts and press Enter to continue: "
-
 fi
 
 
@@ -180,7 +185,11 @@ wait_for_drf_service "http://${TUNNEL_ALT_NAME}" "${TUNNEL_JHUB_BASIC}" ${DEVEL_
 UNICORE_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=unicore-${ID} -o jsonpath="{.items[0].metadata.name}")
 TUNNEL_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=tunnel-${ID} -o jsonpath="{.items[0].metadata.name}")
 
-sed -i -e "s!<KUBECONFIG>!${DIR}/kube_config!g" -e "s!<NAMESPACE>!${NAMESPACE}!g" -e "s!<TUNNEL_URL>!${TUNNEL_ALT_NAME}!g" -e "s!<TUNNEL_POD>!${TUNNEL_POD_NAME}!g" -e "s!<UNICORE_URL>!${UNICORE_ALT_NAME}!g" -e "s!<UNICORE_POD>!${UNICORE_POD_NAME}!g" -e "s!<TUNNEL_JHUB_BASIC>!${TUNNEL_JHUB_BASIC}!g" ${DIR}/${NEW_DIR}/files/pytest.ini
+if [[ -n $CI_PROJECT_DIR ]]; then
+    sed -i -e "s!<KUBECONFIG>!${DIR}/kube_config!g" -e "s!<NAMESPACE>!${NAMESPACE}!g" -e "s!<TUNNEL_URL>!${TUNNEL_ALT_NAME}!g" -e "s!<TUNNEL_POD>!${TUNNEL_POD_NAME}!g" -e "s!<UNICORE_URL>!${UNICORE_ALT_NAME}!g" -e "s!<UNICORE_POD>!${UNICORE_POD_NAME}!g" -e "s!<TUNNEL_JHUB_BASIC>!${TUNNEL_JHUB_BASIC}!g" ${DIR}/${NEW_DIR}/files/pytest.ini
+else
+    sed -i -e "s!<KUBECONFIG>!${HOME}/.kube/config_jupyter-test!g" -e "s!<NAMESPACE>!${NAMESPACE}!g" -e "s!<TUNNEL_URL>!${TUNNEL_ALT_NAME}!g" -e "s!<TUNNEL_POD>!${TUNNEL_POD_NAME}!g" -e "s!<UNICORE_URL>!${UNICORE_ALT_NAME}!g" -e "s!<UNICORE_POD>!${UNICORE_POD_NAME}!g" -e "s!<TUNNEL_JHUB_BASIC>!${TUNNEL_JHUB_BASIC}!g" ${DIR}/${NEW_DIR}/files/pytest.ini
+fi
 
 echo "Used pytest.ini file: "
 cat ${DIR}/${NEW_DIR}/files/pytest.ini
