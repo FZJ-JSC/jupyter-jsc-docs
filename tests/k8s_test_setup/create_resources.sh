@@ -110,6 +110,10 @@ select_yaml_file () {
 }
 select_yaml_file ${DEVEL_TUNNEL} "tunnel"
 
+if [[ -n $CI_PROJECT_DIR ]]; then
+    rm ${DIR}/${NEW_DIR}/yaml/ingress*
+fi
+
 find ${DIR}/${NEW_DIR}/yaml -type f -exec sed -i '' -e "s!<JUPYTERHUB_ALT_NAME>!${JUPYTERHUB_ALT_NAME}!g" -e "s!<JUPYTERHUB_VERSION>!${JUPYTERHUB_VERSION}!g" -e "s!<UNITY_VERSION>!${UNITY_VERSION}!g" -e "s!<UNICORE_VERSION>!${UNICORE_VERSION}!g" -e "s!<TUNNEL_VERSION>!${TUNNEL_VERSION}!g" -e "s!<JUPYTERHUB_PORT>!${JUPYTERHUB_PORT}!g" -e "s!<BACKEND_VERSION>!${BACKEND_VERSION}!g" -e "s!<_VERSION>!${_VERSION}!g" -e "s!<DIR>!${DIR}!g" -e "s!<BACKEND_JHUB_BASIC>!${BACKEND_JHUB_BASIC}!g" -e "s!<ID>!${ID}!g" -e "s!<NAMESPACE>!${NAMESPACE}!g" {} \; 2> /dev/null
 kubectl -n ${NAMESPACE} create configmap --dry-run=client unicore-files-${ID} --from-file=${DIR}/${NEW_DIR}/files/unicore --output yaml > ${DIR}/${NEW_DIR}/yaml/cm-unicore-files.yaml
 kubectl -n ${NAMESPACE} create configmap --dry-run=client backend-files-${ID} --from-file=${DIR}/${NEW_DIR}/files/backend --output yaml > ${DIR}/${NEW_DIR}/yaml/cm-backend-files.yaml
@@ -123,6 +127,27 @@ kubectl -n ${NAMESPACE} create secret tls --dry-run=client --output yaml --cert=
 kubectl -n ${NAMESPACE} create secret tls --dry-run=client --output yaml --cert=${DIR}/${NEW_DIR}/certs/gateway.crt --key=${DIR}/${NEW_DIR}/certs/gateway.key tls-gateway-${ID} > ${DIR}/${NEW_DIR}/yaml/tls-gateway.yaml
 
 kubectl -n ${NAMESPACE} apply -f ${DIR}/${NEW_DIR}/yaml
+
+if [[ -z $CI_PROJECT_DIR ]]; then
+    echo "Waiting for ingress to setup address ..."
+    COUNTER=30
+    IP=$(kubectl -n ${NAMESPACE} get ingress ingress-http-${ID} --output=jsonpath={.status.loadBalancer.ingress[0].ip})
+    while [[ ${IP} == "" ]]; do
+        let COUNTER-=1
+        sleep 4
+        IP=$(kubectl -n ${NAMESPACE} get ingress ingress-http-${ID} --output=jsonpath={.status.loadBalancer.ingress[0].ip})
+    done
+
+    if [[ $COUNTER -eq 0 ]]; then
+        echo "Received no external IP address for ingress resource ingress-http-${ID}"
+        kubectl -n ${NAMESPACE} get ingress ingress-http-${ID}
+        exit 1
+    fi
+    echo "${IP} tunnel-${ID}.${NAMESPACE}.svc unity-${ID}.${NAMESPACE}.svc unicore-${ID}.${NAMESPACE}.svc"
+    read -p "Add the line above to /etc/hosts and press Enter to continue: "
+
+fi
+
 
 wait_for_service () {
     echo "Wait for ${1} ..."
@@ -151,3 +176,8 @@ wait_for_drf_service () {
     fi
 }
 wait_for_drf_service "http://${TUNNEL_ALT_NAME}" "${TUNNEL_JHUB_BASIC}" ${DEVEL_TUNNEL}
+
+UNICORE_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=unicore-${ID} -o jsonpath="{.items[0].metadata.name}")
+TUNNEL_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=tunnel-${ID} -o jsonpath="{.items[0].metadata.name}")
+
+sed -i -e "s!<KUBECONFIG>!${DIR}/kube_config!g" -e "s!NAMESPACE!${NAMESPACE}!g" -e "s!TUNNEL_URL!${TUNNEL_ALT_NAME}!g" -e "s!TUNNEL_POD!${TUNNEL_POD_NAME}!g" -e "s!UNICORE_URL!${UNICORE_ALT_NAME}!g" -e "s!UNICORE_POD!${UNICORE_POD_NAME}!g" -e "s!<TUNNEL_JHUB_BASIC>!${TUNNEL_JHUB_BASIC}!g" ${DIR}/${NEW_DIR}/files/pytest.ini

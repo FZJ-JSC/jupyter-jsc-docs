@@ -11,7 +11,7 @@
         "-s",
         "-vv",
         "-c",
-        "${workspaceFolder}/tests/logs/pytest.ini"
+        "${workspaceFolder}/tests/k8s_test_setup/tests/files/pytest.ini"
     ],
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
