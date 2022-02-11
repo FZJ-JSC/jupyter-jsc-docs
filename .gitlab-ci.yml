@@ -110,7 +110,8 @@ functional-tests-in-k8s:
   script:
     - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
     - /bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/create_resources.sh
-    - pytest -c ${CI_PROJECT_DIR}/tests/k8s_test_setup/tests/files/pytest.ini
+    - pytest -c ${CI_PROJECT_DIR}/tests/k8s_test_setup/tests/files/pytest.ini || true
+    - sleep 1200
   after_script:
     - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
     - /bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/delete_resources.sh
