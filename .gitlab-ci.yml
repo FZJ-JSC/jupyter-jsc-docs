@@ -104,8 +104,8 @@ functional-tests-in-k8s:
     - apt update && apt install -y kubectl
     - pip install -r ${CI_PROJECT_DIR}/tests/functional_tests/requirements.txt
     - sed -i -e "s@<K8S_TEST_CLUSTER_SERVER>@${K8S_TEST_CLUSTER_SERVER}@g" -e "s@<K8S_TEST_CLUSTER_CA_AUTH_DATA>@${K8S_TEST_CLUSTER_CA_AUTH_DATA}@g" -e "s@<K8S_TEST_CLUSTER_USER_TOKEN>@${K8S_TEST_CLUSTER_USER_TOKEN}@g" ${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
-    - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
   script:
+    - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
     - sleep 1200
     - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
   rules:

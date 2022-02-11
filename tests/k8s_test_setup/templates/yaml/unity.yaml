@@ -13,12 +13,20 @@ spec:
       protocol: TCP
       targetPort: 2443
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: unity-<ID>
   namespace: <NAMESPACE>
 spec:
+  selector:
+    matchLabels:
+      app: unity-<ID>
+  template:
+    metadata:
+      labels:
+        app: unity-<ID>
+    spec:
       securityContext:
         fsGroup: 100
       imagePullSecrets:

@@ -17,12 +17,20 @@ spec:
       protocol: TCP
       targetPort: 7112
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: unicore-<ID>
   namespace: <NAMESPACE>
 spec:
+  selector:
+    matchLabels:
+      app: unicore-<ID>
+  template:
+    metadata:
+      labels:
+        app: unicore-<ID>
+    spec:
       securityContext:
         fsGroup: 100
       imagePullSecrets:

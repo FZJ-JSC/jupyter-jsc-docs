@@ -17,12 +17,20 @@ spec:
       protocol: TCP
       targetPort: 2222
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: tunnel-<ID>
   namespace: <NAMESPACE>
 spec:
+  selector:
+    matchLabels:
+      app: tunnel-<ID>
+  template:
+    metadata:
+      labels:
+        app: tunnel-<ID>
+    spec:
       securityContext:
         fsGroup: 100
       imagePullSecrets:
