@@ -29,6 +29,7 @@ stages:
 variables:
   CURRENT_RC_TAG: "31cd2434"
   UNICORE_SERVER_VERSION: "8.3.0-5"
+  TESTING_CA_ROOT_B64: $TESTING_CA_ROOT_B64
   TUNNEL_SECRET_KEY: $TUNNEL_SECRET_KEY
   TUNNEL_SUPERUSER_PASS: $TUNNEL_SUPERUSER_PASS
   TUNNEL_SUPERUSER_PASS_B64: $TUNNEL_SUPERUSER_PASS_B64
@@ -104,10 +105,15 @@ functional-tests-in-k8s:
     - apt update && apt install -y kubectl
     - pip install -r ${CI_PROJECT_DIR}/tests/functional_tests/requirements.txt
     - sed -i -e "s@<K8S_TEST_CLUSTER_SERVER>@${K8S_TEST_CLUSTER_SERVER}@g" -e "s@<K8S_TEST_CLUSTER_CA_AUTH_DATA>@${K8S_TEST_CLUSTER_CA_AUTH_DATA}@g" -e "s@<K8S_TEST_CLUSTER_USER_TOKEN>@${K8S_TEST_CLUSTER_USER_TOKEN}@g" ${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
+    - cp ${CI_PROJECT_DIR}/tests/k8s_test_setup/templates/certs/ca-root.pem /usr/local/share/ca-certificates/ca-root.crt
+    - update-ca-certificates
   script:
     - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
+    - /bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/create_resources.sh
     - sleep 1200
     - pytest -c ${CI_PROJECT_DIR}/tests/functional_tests/pytest.ini
+  after_script:
+    - /bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/delete_resources.sh
   rules:
     - if: $FUNCTIONAL_TEST_TAG
 
