@@ -180,7 +180,7 @@ wait_for_drf_service "http://${TUNNEL_ALT_NAME}" "${TUNNEL_JHUB_BASIC}" ${DEVEL_
 UNICORE_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=unicore-${ID} -o jsonpath="{.items[0].metadata.name}")
 TUNNEL_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=tunnel-${ID} -o jsonpath="{.items[0].metadata.name}")
 
-sed -i -e "s!<KUBECONFIG>!${DIR}/kube_config!g" -e "s!NAMESPACE!${NAMESPACE}!g" -e "s!TUNNEL_URL!${TUNNEL_ALT_NAME}!g" -e "s!TUNNEL_POD!${TUNNEL_POD_NAME}!g" -e "s!UNICORE_URL!${UNICORE_ALT_NAME}!g" -e "s!UNICORE_POD!${UNICORE_POD_NAME}!g" -e "s!<TUNNEL_JHUB_BASIC>!${TUNNEL_JHUB_BASIC}!g" ${DIR}/${NEW_DIR}/files/pytest.ini
+sed -i -e "s!<KUBECONFIG>!${DIR}/kube_config!g" -e "s!<NAMESPACE>!${NAMESPACE}!g" -e "s!<TUNNEL_URL>!${TUNNEL_ALT_NAME}!g" -e "s!<TUNNEL_POD>!${TUNNEL_POD_NAME}!g" -e "s!<UNICORE_URL>!${UNICORE_ALT_NAME}!g" -e "s!<UNICORE_POD>!${UNICORE_POD_NAME}!g" -e "s!<TUNNEL_JHUB_BASIC>!${TUNNEL_JHUB_BASIC}!g" ${DIR}/${NEW_DIR}/files/pytest.ini
 
 echo "Used pytest.ini file: "
 cat ${DIR}/${NEW_DIR}/files/pytest.ini
