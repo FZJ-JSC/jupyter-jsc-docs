@@ -39,6 +39,7 @@ class FunctionalTests(unittest.TestCase):
             .split("\n")
         )
         r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
+        self.assertNotEqual(r.status_code, 401, self.headers)
         self.assertEqual(r.status_code, 200, logtest_url)
         logs_2 = (
             self.v1.read_namespaced_pod_log(
