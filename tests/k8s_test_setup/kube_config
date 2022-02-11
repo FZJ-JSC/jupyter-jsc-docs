@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Config
+clusters:
+- name: "testing-cluster"
+  cluster:
+    server: "<K8S_TEST_CLUSTER_SERVER>"
+    certificate-authority-data: "<K8S_TEST_CLUSTER_CA_AUTH_DATA>"
+
+users:
+- name: "testing-user"
+  user:
+    token: "<K8S_TEST_CLUSTER_USER_TOKEN>"
+
+
+contexts:
+- name: "testing-context"
+  context:
+    user: "testing-user"
+    cluster: "testing-cluster"
+
+current-context: "testing-context"
