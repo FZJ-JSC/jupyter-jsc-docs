@@ -170,17 +170,7 @@ wait_for_service () {
 }
 
 wait_for_service "https://${UNICORE_ALT_NAME}/"
-
-wait_for_drf_service () {
-    if [[ ! ${3} == "true" ]]; then
-        wait_for_service ${1}/api/health/
-        STATUS_CODE=$(curl --write-out '%{http_code}' --silent --output /dev/null -X "POST" -H "Content-Type: application/json" -H "Authorization: ${2}" -d '{"handler": "stream", "configuration": {"formatter": "simple", "level": 5, "stream": "ext://sys.stdout"}}' ${1}/api/logs/handler/)
-        if [[ ! $STATUS_CODE -eq 201 ]]; then
-            echo "Could not add stream handler to ${1}. Status Code: $STATUS_CODE"
-        fi
-    fi
-}
-wait_for_drf_service "http://${TUNNEL_ALT_NAME}" "${TUNNEL_JHUB_BASIC}" ${DEVEL_TUNNEL}
+wait_for_service "http://${TUNNEL_ALT_NAME}/api/health/" 
 
 UNICORE_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=unicore-${ID} -o jsonpath="{.items[0].metadata.name}")
 TUNNEL_POD_NAME=$(kubectl -n ${NAMESPACE} get pod -l app=tunnel-${ID} -o jsonpath="{.items[0].metadata.name}")

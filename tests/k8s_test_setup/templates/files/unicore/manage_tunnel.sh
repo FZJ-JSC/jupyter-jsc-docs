@@ -21,8 +21,8 @@ TUNNEL_SSH_PORT=2222
 TUNNEL_SSH_USER=tunnel
 TUNNEL_SSH_HOST=<TUNNEL_ALT_NAME>
 
-JUPYTERHUB_HOST=<JUPYTERHUB_ALT_NAME>
-JUPYTERHUB_PORT=<JUPYTERHUB_PORT>
+JUPYTERHUB_HOST=localhost
+JUPYTERHUB_PORT=30800
 
 if [[ ${ACTION} == ${START} ]]; then
         PID=$(netstat -ltnp 2>/dev/null | tr -s ' ' | grep ":${LOCAL_PORT}" | cut -d' ' -f7 | cut -d'/' -f1)
