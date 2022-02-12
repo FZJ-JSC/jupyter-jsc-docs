@@ -105,7 +105,7 @@ functional-tests-in-k8s:
     - pytest -c ${CI_PROJECT_DIR}/tests/k8s_test_setup/current/files/pytest.ini
   after_script:
     - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
-    - /bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/delete_resources.sh
+    - echo "DEBUG"; #/bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/delete_resources.sh
   rules:
     - if: $FUNCTIONAL_TEST_TAG
 
