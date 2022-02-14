@@ -75,9 +75,14 @@ class TunnelConfig(AppConfig):
                 )
 
     def ready(self):
-        try:
-            self.start_tunnels_in_db()
-            self.start_remote_in_config_file()
-        except OperationalError:
-            pass
+        if os.environ.get("UWSGI_START", "false").lower() == "true":
+            try:
+                self.start_tunnels_in_db()
+            except OperationalError:
+                pass
+
+            try:
+                self.start_remote_in_config_file()
+            except OperationalError:
+                pass
         return super().ready()

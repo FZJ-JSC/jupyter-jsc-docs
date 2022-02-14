@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.apps import AppConfig
 
@@ -58,9 +59,10 @@ class LogsConfig(AppConfig):
         logger.info("logging handler setup done", extra={"uuidcode": "StartUp"})
 
     def ready(self):
-        self.start_logger()
-        try:
-            self.add_handler()
-        except OperationalError:
-            pass
+        if os.environ.get("UWSGI_START", "false").lower() == "true":
+            self.start_logger()
+            try:
+                self.add_handler()
+            except OperationalError:
+                pass
         return super().ready()

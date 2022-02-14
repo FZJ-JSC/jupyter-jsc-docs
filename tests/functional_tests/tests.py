@@ -72,10 +72,9 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(r.json(), [])
 
         # Test stdout with no handler defined
-        r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
-        # logs_1, logs_2 = self.logtest_stream()
-        # self.assertEqual(len(logs_1) + 4, len(logs_2))
-        # self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
+        logs_1, logs_2 = self.logtest_stream()
+        self.assertEqual(len(logs_1) + 4, len(logs_2))
+        self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
 
         # Add Stream handler
         body = {"handler": "stream"}
@@ -90,39 +89,55 @@ class FunctionalTests(unittest.TestCase):
         r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
 
         # Test Stream handler
-        # logs_1, logs_2 = self.logtest_stream()
-        # self.assertEqual(len(logs_1) + 7, len(logs_2))
-        # if formatter == "simple":
-        #     self.assertTrue(logs_2[-5].endswith("function=list : Info"))
-        # elif formatter == "json":
-        #     self.assertEqual(json.loads(logs_2[-5])["Message"], "Info")
+        logs_1, logs_2 = self.logtest_stream()
+        self.assertEqual(len(logs_1) + 5, len(logs_2))
+        if formatter == "simple":
+            self.assertTrue(logs_2[-5].endswith("function=list : Info"))
+        elif formatter == "json":
+            self.assertEqual(json.loads(logs_2[-5])["Message"], "Info")
 
         # # Test mix_extra in formatter
-        # if formatter == "simple":
-        #     self.assertTrue(
-        #         logs_2[-2].endswith(
-        #             "function=list : Critical --- Extra1=message1 --- mesg=msg1"
-        #         )
-        #     )
-        # elif formatter == "json":
-        #     tmp = json.loads(logs_2[-2])
-        #     self.assertEqual(tmp["Message"], "Critical")
-        #     self.assertEqual(tmp["Extra1"], "message1")
-        #     self.assertEqual(tmp["mesg"], "msg1")
+        if formatter == "simple":
+            self.assertTrue(
+                logs_2[-2].endswith(
+                    "function=list : Critical --- Extra1=message1 --- mesg=msg1"
+                )
+            )
+        elif formatter == "json":
+            tmp = json.loads(logs_2[-2])
+            self.assertEqual(tmp["Message"], "Critical")
+            self.assertEqual(tmp["Extra1"], "message1")
+            self.assertEqual(tmp["mesg"], "msg1")
 
-        # Update Stream handler Loglevel with POST
-        body = {"handler": "stream", "configuration": {"level": 30}}
+        # Update Stream handler Loglevel with PATCH
+        body = {"handler": "stream", "configuration": {"level": 5}}
         r = requests.patch(url=stream_url, json=body, headers=self.headers)
         self.assertEqual(r.status_code, 200)
-        r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
 
         # Test Stream handler with TRACE
-        # logs_1, logs_2 = self.logtest_stream()
-        # self.assertEqual(len(logs_1) + 4, len(logs_2))
-        # if formatter == "simple":
-        #     self.assertTrue(logs_2[-7].endswith("function=list : Trace"))
-        # elif formatter == "json":
-        #     self.assertEqual(json.loads(logs_2[-7])["Message"], "Trace")
+        logs_1, logs_2 = self.logtest_stream()
+        self.assertEqual(len(logs_1) + 7, len(logs_2))
+        if formatter == "simple":
+            self.assertTrue(logs_2[-7].endswith("function=list : Trace"))
+        elif formatter == "json":
+            self.assertEqual(json.loads(logs_2[-7])["Message"], "Trace")
+
+        # Second partial update should not change loglevel
+        swap_formatter = {"simple": "json", "json": "simple"}
+        body = {
+            "handler": "stream",
+            "configuration": {"formatter": swap_formatter[formatter]},
+        }
+        r = requests.patch(url=stream_url, json=body, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
+
+        # Test Stream handler with TRACE
+        logs_1, logs_2 = self.logtest_stream()
+        self.assertEqual(len(logs_1) + 7, len(logs_2))
+        if swap_formatter[formatter] == "simple":
+            self.assertTrue(logs_2[-7].endswith("function=list : Trace"))
+        elif swap_formatter[formatter] == "json":
+            self.assertEqual(json.loads(logs_2[-7])["Message"], "Trace")
 
         # Update LogLevel to DEACTIVATE
         body["configuration"]["level"] = "DEACTIVATE"
@@ -131,8 +146,8 @@ class FunctionalTests(unittest.TestCase):
         r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
 
         # Test Stream handler with DEACTIVATE
-        # logs_1, logs_2 = self.logtest_stream()
-        # self.assertEqual(len(logs_1) + 1, len(logs_2))
+        logs_1, logs_2 = self.logtest_stream()
+        self.assertEqual(len(logs_1) + 1, len(logs_2))
 
         # Delete handler
         r = requests.delete(url=stream_url, json=body, headers=self.headers)
@@ -140,6 +155,6 @@ class FunctionalTests(unittest.TestCase):
         r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
 
         # Test stdout with no handler defined
-        # logs_1, logs_2 = self.logtest_stream()
-        # self.assertEqual(len(logs_1) + 4, len(logs_2))
-        # self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
+        logs_1, logs_2 = self.logtest_stream()
+        self.assertEqual(len(logs_1) + 4, len(logs_2))
+        self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
