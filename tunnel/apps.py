@@ -61,7 +61,7 @@ class TunnelConfig(AppConfig):
             return
         remote_prefix = "Host remote_"
         remote_hosts_lines = [
-            x[len(remote_prefix)] for x in config_file if x.startswith(remote_prefix)
+            x[len(remote_prefix) :] for x in config_file if x.startswith(remote_prefix)
         ]
         kwargs["remote_hosts"] = remote_hosts_lines
         log.info("Start db-remote-tunnels", extra=kwargs)
