@@ -84,9 +84,6 @@ spec:
           mountPath: /tmp/ssh_ro/tunnel.p12
           subPath: tunnel.p12
         - name: files
-          mountPath: /home/tunnel/web/uwsgi.ini
-          subPath: uwsgi.ini
-        - name: files
           mountPath: /tmp/ssh_ro/config
           subPath: config
         - name: files

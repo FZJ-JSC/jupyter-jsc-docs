@@ -78,9 +78,6 @@ spec:
           mountPath: /tmp/home/tunnel.p12
           subPath: tunnel.p12
         - name: files
-          mountPath: /home/tunnel/web/uwsgi.ini
-          subPath: uwsgi.ini
-        - name: files
           mountPath: /tmp/.vscode/settings.json
           subPath: settings.json
         - name: files
