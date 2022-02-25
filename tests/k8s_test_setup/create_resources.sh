@@ -80,7 +80,6 @@ JUPYTERHUB_PORT="30800"
 
 cp -rp ${DIR}/templates/files ${DIR}/${NEW_DIR}/.
 find ${DIR}/${NEW_DIR}/files -type f -exec sed -i '' -e "s!<DIR>!${DIR}!g" -e "s!<BACKEND_JHUB_BASIC>!${BACKEND_JHUB_BASIC}!g" -e "s!<NAMESPACE>!${NAMESPACE}!g" -e "s!<ID>!${ID}!g" -e "s!<UNITY_ALT_NAME>!${UNITY_ALT_NAME}!g" -e "s!<UNICORE_ALT_NAME>!${UNICORE_ALT_NAME}!g" -e "s!<TUNNEL_ALT_NAME>!${TUNNEL_ALT_NAME}!g" -e "s!<JUPYTERHUB_ALT_NAME>!${JUPYTERHUB_ALT_NAME}!g" -e "s!<JUPYTERHUB_PORT>!${JUPYTERHUB_PORT}!g" -e "s!<TUNNEL_PUBLIC_KEY>!${ESCAPED_TPK}!g" -e "s!<REMOTE_PUBLIC_KEY>!${ESCAPED_RPK}!g" -e "s!<LJUPYTER_PUBLIC_KEY>!${ESCAPED_LPK}!g" -e "s!<DEVEL_PUBLIC_KEY>!${ESCAPED_DPK}!g" -e "s!<UNICORE_SSH_PORT>!${UNICORE_SSH_PORT}!g" {} \; 2> /dev/null
-tar -czf ${DIR}/${NEW_DIR}/files/backend/job_descriptions.tar.gz -C ${DIR}/${NEW_DIR}/files/backend/ job_descriptions
 
 # Create passwords / secrets for Django services
 BACKEND_SECRET=$(uuidgen)
@@ -122,10 +121,7 @@ fi
 
 find ${DIR}/${NEW_DIR}/yaml -type f -exec sed -i '' -e "s!<JUPYTERHUB_ALT_NAME>!${JUPYTERHUB_ALT_NAME}!g" -e "s!<JUPYTERHUB_VERSION>!${JUPYTERHUB_VERSION}!g" -e "s!<UNITY_VERSION>!${UNITY_VERSION}!g" -e "s!<UNICORE_VERSION>!${UNICORE_VERSION}!g" -e "s!<TUNNEL_VERSION>!${TUNNEL_VERSION}!g" -e "s!<JUPYTERHUB_PORT>!${JUPYTERHUB_PORT}!g" -e "s!<BACKEND_VERSION>!${BACKEND_VERSION}!g" -e "s!<_VERSION>!${_VERSION}!g" -e "s!<DIR>!${DIR}!g" -e "s!<BACKEND_JHUB_BASIC>!${BACKEND_JHUB_BASIC}!g" -e "s!<ID>!${ID}!g" -e "s!<NAMESPACE>!${NAMESPACE}!g" {} \; 2> /dev/null
 kubectl -n ${NAMESPACE} create configmap --dry-run=client unicore-files-${ID} --from-file=${DIR}/${NEW_DIR}/files/unicore --output yaml > ${DIR}/${NEW_DIR}/yaml/cm-unicore-files.yaml
-kubectl -n ${NAMESPACE} create configmap --dry-run=client backend-files-${ID} --from-file=${DIR}/${NEW_DIR}/files/backend --output yaml > ${DIR}/${NEW_DIR}/yaml/cm-backend-files.yaml
 kubectl -n ${NAMESPACE} create configmap --dry-run=client tunnel-files-${ID} --from-file=${DIR}/${NEW_DIR}/files/tunnel --output yaml > ${DIR}/${NEW_DIR}/yaml/cm-tunnel-files.yaml
-kubectl -n ${NAMESPACE} create configmap --dry-run=client jupyterhub-files-${ID} --from-file=${DIR}/${NEW_DIR}/files/jupyterhub --output yaml > ${DIR}/${NEW_DIR}/yaml/cm-jupyterhub-files.yaml
-kubectl -n ${NAMESPACE} create secret generic --dry-run=client backend-drf-${ID} --from-literal=backend_secret=${BACKEND_SECRET} --from-literal=superuser_pass=${BACKEND_SUPERUSER_PASS} --from-literal=jupyterhub_pass=${BACKEND_JHUB_PASS} --from-literal=jupyterhub_basic="${BACKEND_JHUB_BASIC}" --output yaml > ${DIR}/${NEW_DIR}/yaml/secret-backend-drf.yaml
 kubectl -n ${NAMESPACE} create secret generic --dry-run=client tunnel-drf-${ID} --from-literal=tunnel_secret=${TUNNEL_SECRET} --from-literal=superuser_pass=${TUNNEL_SUPERUSER_PASS} --from-literal=backend_pass=${TUNNEL_BACKEND_PASS} --from-literal=backend_basic="${TUNNEL_BACKEND_BASIC}" --from-literal=jupyterhub_pass=${TUNNEL_JHUB_PASS} --from-literal=jupyterhub_basic="${TUNNEL_JHUB_BASIC}" --output yaml > ${DIR}/${NEW_DIR}/yaml/secret-tunnel-drf.yaml
 kubectl -n ${NAMESPACE} create secret generic --dry-run=client --output yaml --from-file=${DIR}/${NEW_DIR}/keypairs keypairs-${ID} > ${DIR}/${NEW_DIR}/yaml/secret-keypairs.yaml
 kubectl -n ${NAMESPACE} create secret generic --dry-run=client --output yaml --from-file=${DIR}/${NEW_DIR}/certs certs-${ID} > ${DIR}/${NEW_DIR}/yaml/secret-certs.yaml
