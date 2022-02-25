@@ -55,7 +55,7 @@ spec:
         volumeMounts:
         - name: files
           subPath: manage_tunnel.sh
-          mountPath: /home/ljupyter/manage_tunnel.sh
+          mountPath: /tmp/ljupyter_home/manage_tunnel.sh
         - name: files
           subPath: authorized_keys
           mountPath: /tmp/ssh_ro/authorized_keys

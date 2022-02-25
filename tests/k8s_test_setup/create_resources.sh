@@ -8,8 +8,8 @@ fi
 
 DEVEL_TUNNEL="false"
 
-UNITY_VERSION="3.8.1-k8s-1"
-UNICORE_VERSION="8.3.0-5"
+UNITY_VERSION="3.8.1-k8s-2"
+UNICORE_VERSION="8.3.0-7"
 
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
