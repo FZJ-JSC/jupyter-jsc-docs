@@ -66,26 +66,15 @@ class FunctionalTests(unittest.TestCase):
         handler_url = f"{self.tunnel_url}api/logs/handler/"
         stream_url = f"{self.tunnel_url}api/logs/handler/stream/"
         logtest_url = f"{self.tunnel_url}api/logs/logtest/"
-        # Check that nothing's defined
-        r = requests.get(url=handler_url, headers=self.headers, timeout=2)
-        self.assertEqual(r.status_code, 200, self.headers)
-        self.assertEqual(r.json(), [])
-
-        # Test stdout with no handler defined
-        logs_1, logs_2 = self.logtest_stream()
-        self.assertEqual(len(logs_1) + 4, len(logs_2))
-        self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
-
-        # Add Stream handler
-        body = {"handler": handler, "configuration": {"formatter": formatter}}
-        r = requests.post(url=handler_url, json=body, headers=self.headers)
-        self.assertEqual(r.status_code, 201)
-        r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
-
         # Check that something's defined
         r = requests.get(url=handler_url, headers=self.headers, timeout=2)
         self.assertEqual(r.status_code, 200)
         self.assertNotEqual(r.json(), [])
+
+        # Update Stream handler
+        body = {"handler": handler, "configuration": {"formatter": formatter}}
+        r = requests.patch(url=stream_url, json=body, headers=self.headers)
+        self.assertEqual(r.status_code, 200)
         r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
 
         # Test Stream handler
@@ -154,7 +143,23 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(r.status_code, 204)
         r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
 
+        # Check that nothing's defined
+        r = requests.get(url=handler_url, headers=self.headers, timeout=2)
+        self.assertEqual(r.status_code, 200, self.headers)
+        self.assertEqual(r.json(), [])
+
         # Test stdout with no handler defined
         logs_1, logs_2 = self.logtest_stream()
         self.assertEqual(len(logs_1) + 4, len(logs_2))
         self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
+
+        # Add Stream handler
+        body = {"handler": handler}
+        r = requests.post(url=handler_url, json=body, headers=self.headers)
+        self.assertEqual(r.status_code, 201)
+        r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
+
+        # Check that something's defined
+        r = requests.get(url=handler_url, headers=self.headers, timeout=2)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotEqual(r.json(), [])
