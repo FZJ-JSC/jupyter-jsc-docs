@@ -90,7 +90,7 @@ class FunctionalTests(unittest.TestCase):
 
         # Test Stream handler
         logs_1, logs_2 = self.logtest_stream()
-        self.assertEqual(len(logs_1) + 5, len(logs_2))
+        self.assertEqual(len(logs_1) + 6, len(logs_2))
         if formatter == "simple":
             self.assertTrue(logs_2[-5].endswith("function=list : Info"))
         elif formatter == "json":
@@ -116,7 +116,7 @@ class FunctionalTests(unittest.TestCase):
 
         # Test Stream handler with TRACE
         logs_1, logs_2 = self.logtest_stream()
-        self.assertEqual(len(logs_1) + 5, len(logs_2))
+        self.assertEqual(len(logs_1) + 8, len(logs_2))
         if formatter == "simple":
             self.assertTrue(logs_2[-7].endswith("function=list : Trace"))
         elif formatter == "json":
