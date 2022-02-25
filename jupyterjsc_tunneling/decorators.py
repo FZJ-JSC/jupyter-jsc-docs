@@ -23,7 +23,9 @@ Any hook / trigger at database updates would only be called on one pod.
 Since logging is thread-safe, we cannot run an extra thread to update
 handlers.
 """
-current_logger_configuration_mem = {}
+current_logger_configuration_mem = {
+    "stream": {"formatter": "simple", "level": 10, "stream": "ext://sys.stdout"},
+}
 
 
 def request_decorator(func):
