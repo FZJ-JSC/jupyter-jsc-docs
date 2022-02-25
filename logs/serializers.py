@@ -120,7 +120,11 @@ class HandlerSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         handler_name = data["handler"]
-        configuration = copy.deepcopy(default_configurations[handler_name])
+        existing_handler = HandlerModel.objects.filter(handler=handler_name).first()
+        if existing_handler is not None:
+            configuration = copy.deepcopy(existing_handler.configuration)
+        else:
+            configuration = copy.deepcopy(default_configurations[handler_name])
         for key, value in data.get("configuration", {}).items():
             configuration[key] = value
         data["configuration"] = configuration
