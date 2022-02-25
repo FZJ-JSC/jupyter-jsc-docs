@@ -1,3 +1,4 @@
+import copy
 import logging.handlers
 import socket
 import sys
@@ -86,7 +87,7 @@ supported_formatter_kwargs = {
 
 
 def create_logging_handler(handler_name, **configuration):
-    log.debug(f"Add handler ({handler_name}) ...", extra=configuration)
+    configuration_logs = copy.deepcopy(configuration)
     formatter_name = configuration.pop("formatter")
     level = get_level(configuration.pop("level"))
 
@@ -115,7 +116,7 @@ def create_logging_handler(handler_name, **configuration):
     handler.setFormatter(formatter)
     logger = logging.getLogger(LOGGER_NAME)
     logger.addHandler(handler)
-    log.debug(f"... handler added ({handler_name})", extra=configuration)
+    log.debug(f"Logging handler added ({handler_name})", extra=configuration_logs)
 
 
 def remove_logging_handler(handler_name):
