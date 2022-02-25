@@ -133,7 +133,7 @@ class FunctionalTests(unittest.TestCase):
 
         # Test Stream handler with TRACE
         logs_1, logs_2 = self.logtest_stream()
-        self.assertEqual(len(logs_1) + 7, len(logs_2))
+        self.assertEqual(len(logs_1) + 8, len(logs_2))
         if swap_formatter[formatter] == "simple":
             self.assertTrue(logs_2[-7].endswith("function=list : Trace"))
         elif swap_formatter[formatter] == "json":
