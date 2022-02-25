@@ -1,3 +1,5 @@
+import copy
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -118,7 +120,7 @@ class HandlerSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         handler_name = data["handler"]
-        configuration = default_configurations[handler_name]
+        configuration = copy.deepcopy(default_configurations[handler_name])
         for key, value in data.get("configuration", {}).items():
             configuration[key] = value
         data["configuration"] = configuration
