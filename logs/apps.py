@@ -44,6 +44,16 @@ class LogsConfig(AppConfig):
 
         active_handler = HandlerModel.objects.all()
         active_handler_dict = {x.handler: x.configuration for x in active_handler}
+
+        if len(active_handler_dict) == 0 and len(current_logger_configuration_mem) == 0:
+            active_handler_dict = {
+                "stream": {
+                    "formatter": "simple",
+                    "level": 10,
+                    "stream": "ext://sys.stdout",
+                }
+            }
+
         if active_handler_dict != current_logger_configuration_mem:
             logger_handlers = logger.handlers
             logger.handlers = [
