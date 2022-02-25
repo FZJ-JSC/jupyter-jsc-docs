@@ -77,7 +77,7 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(logs_2[-4:-1], ["Warn", "Error", "Critical"])
 
         # Add Stream handler
-        body = {"handler": "stream"}
+        body = {"handler": handler, "configuration": {"formatter": formatter}}
         r = requests.post(url=handler_url, json=body, headers=self.headers)
         self.assertEqual(r.status_code, 201)
         r = requests.get(url=logtest_url, headers=self.headers, timeout=2)
@@ -90,7 +90,7 @@ class FunctionalTests(unittest.TestCase):
 
         # Test Stream handler
         logs_1, logs_2 = self.logtest_stream()
-        self.assertEqual(len(logs_1) + 6, len(logs_2))
+        self.assertEqual(len(logs_1) + 6, len(logs_2), body)
         if formatter == "simple":
             self.assertTrue(logs_2[-5].endswith("function=list : Info"))
         elif formatter == "json":
