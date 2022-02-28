@@ -41,8 +41,6 @@ spec:
       - name: gitlab-registry
       containers:
       - env:
-        - name: SSH_RO_PATH
-          value: "/tmp/ssh_ro"
         - name: UNITY_ADVERTISED_HOST
           value: unity-<ID>.gitlab.svc
         - name: EXTERNALURL
@@ -58,7 +56,7 @@ spec:
           mountPath: /tmp/ljupyter_home/manage_tunnel.sh
         - name: files
           subPath: authorized_keys
-          mountPath: /tmp/ssh_ro/authorized_keys
+          mountPath: /tmp/ljupyter_ssh/authorized_keys
         - name: certs
           mountPath: /opt/unicore/certs/gateway.key
           subPath: gateway.key
@@ -96,7 +94,7 @@ spec:
           mountPath: /opt/unicore/certs/ca-root.pem
           subPath: ca-root.pem
         - name: keypairs
-          mountPath: /tmp/ssh_ro/id_ed25519
+          mountPath: /tmp/ljupyter_ssh/id_ed25519
           subPath: ljupyter
       volumes:
       - name: files
