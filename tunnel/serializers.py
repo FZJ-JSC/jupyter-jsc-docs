@@ -1,10 +1,7 @@
-import copy
 import uuid
-from collections import OrderedDict
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import set_value
 from rest_framework.serializers import Serializer
 
 from .models import TunnelModel
@@ -68,18 +65,6 @@ class RemoteSerializer(Serializer):
             .query_params.dict()
             .get("uuidcode", uuid.uuid4().hex)
         )
-        kwargs = copy.deepcopy(data)
-        kwargs["uuidcode"] = uuidcode
-        ret = OrderedDict()
-        set_value(ret, [], data)
-        set_value(
-            ret,
-            [],
-            {
-                "running": status_remote(
-                    alert_admins=True, raise_exception=True, **kwargs
-                )
-            },
-        )
-        set_value(ret, [], {"uuidcode": uuidcode})
-        return ret
+        data["uuidcode"] = uuidcode
+        data["running"] = status_remote(alert_admins=True, raise_exception=True, **data)
+        return data
