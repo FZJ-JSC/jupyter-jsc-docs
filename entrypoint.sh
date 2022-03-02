@@ -7,8 +7,8 @@ fi
 mkdir -p /run/sshd
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
-if [[ -n ${SSH_RO_PATH} ]]; then
-    for f in ${SSH_RO_PATH}/* ; do
+if [[ -d /tmp/tunnel_ssh ]]; then
+    for f in /tmp/tunnel_ssh/* ; do
         if [[ -f $f ]]; then
             cp -rp $f /home/tunnel/.ssh/.
         fi
@@ -70,11 +70,12 @@ if [[ -n ${DELAYED_START_IN_SEC} ]]; then
 fi
 
 if [[ ${DEVEL,,} == "true" ]]; then
-    if [[ -d /tmp/.vscode ]]; then
-        cp -r /tmp/.vscode /home/tunnel/web/.
+    if [[ -d /tmp/tunnel_vscode ]]; then
+        cp -r /tmp/tunnel_vscode /home/tunnel/web/.vscode
+        find /home/tunnel/web/.vscode -type f -exec sed -i '' -e "s@<KUBERNETES_SERVICE_HOST>@${KUBERNETES_SERVICE_HOST}@g" -e "s@<KUBERNETES_SERVICE_PORT>@${KUBERNETES_SERVICE_PORT}@g" {} \; 2> /dev/null
     fi
-    if [[ -d /tmp/home ]]; then
-        cp -r /tmp/home/* /home/tunnel/.
+    if [[ -d /tmp/tunnel_home ]]; then
+        cp -r /tmp/tunnel_home/* /home/tunnel/.
     fi
     chown -R tunnel:users /home/tunnel
     apt update && apt install -yq rsync vim

@@ -61,7 +61,7 @@ def request_decorator(func):
                 details = {"error": e.args[0], "detailed_error": e.args[1]}
             else:
                 details = {"error": "Unexpected Error", "detailed_error": str(e)}
-            log.debug("Error Handling, return 500.", extra=details)
+            log.debug("Error Handling, return 500.", exc_info=True, extra=details)
             return Response(details, status=500)
 
     return catch_all_exceptions

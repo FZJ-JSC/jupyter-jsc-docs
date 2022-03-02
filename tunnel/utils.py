@@ -167,11 +167,13 @@ def check_tunnel_connection(func):
                     "tunnel",
                     "create",
                     "SSH tunnel create connection",
-                    alert_admins=True,
                     max_attempts=3,
                     **kwargs,
                 )
             except:
+                log.critical(
+                    "Could not create ssh tunnel.", extra=kwargs, exc_info=True
+                )
                 # That's not ok. We could not connect to the system
                 raise TunnelException(
                     f"System not available: Could not connect via ssh to {kwargs['hostname']}",
