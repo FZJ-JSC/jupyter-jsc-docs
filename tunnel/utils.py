@@ -309,6 +309,7 @@ def k8s_get_svc_namespace():
 
 def k8s_create_svc(**kwargs):
     v1 = k8s_get_client()
+    deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")
     name = k8s_get_svc_name(kwargs["startuuidcode"])
     namespace = k8s_get_svc_namespace()
     service_manifest = {
@@ -330,7 +331,7 @@ def k8s_create_svc(**kwargs):
                     "targetPort": kwargs["local_port"],
                 }
             ],
-            "selector": {"name": name},
+            "selector": {"app": deployment_name},
         },
     }
     return v1.create_namespaced_service(
