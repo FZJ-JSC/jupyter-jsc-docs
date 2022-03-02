@@ -297,7 +297,8 @@ def k8s_get_client():
 
 
 def k8s_get_svc_name(startuuidcode):
-    return f"{os.environ.get('DEPLOYMENT_NAME', 'tunneling')}-{startuuidcode}"[0:63]
+    deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")[0:30]
+    return f"{deployment_name}-{startuuidcode}"[0:63]
 
 
 def k8s_get_svc_namespace():
