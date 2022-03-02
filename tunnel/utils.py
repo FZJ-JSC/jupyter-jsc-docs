@@ -322,7 +322,7 @@ def k8s_create_svc(**kwargs):
             "ports": [
                 {
                     "name": "port",
-                    "port": kwargs["local_port"],
+                    "port": kwargs["svc_port"],
                     "protocol": "TCP",
                     "targetPort": kwargs["local_port"],
                 }

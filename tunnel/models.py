@@ -5,6 +5,7 @@ class TunnelModel(models.Model):
     startuuidcode = models.TextField(primary_key=True)
     hostname = models.TextField(null=False, max_length=32)
     local_port = models.IntegerField(null=False)
+    svc_port = models.IntegerField(null=False)
     target_node = models.TextField(null=False, max_length=32)
     target_port = models.IntegerField(null=False)
     date = models.DateTimeField(auto_now_add=True)

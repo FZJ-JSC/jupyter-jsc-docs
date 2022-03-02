@@ -63,6 +63,7 @@ class TunnelViewTests(UserCredentials):
     tunnel_data = {
         "startuuidcode": "uuidcode",
         "hostname": "hostname",
+        "svc_port": 8080,
         "target_node": "targetnode",
         "target_port": 34567,
     }

@@ -18,12 +18,19 @@ class TunnelSerializer(serializers.ModelSerializer):
             "startuuidcode",
             "hostname",
             "local_port",
+            "svc_port",
             "target_node",
             "target_port",
         ]
 
     def is_valid(self, raise_exception=False):
-        required_keys = ["startuuidcode", "hostname", "target_node", "target_port"]
+        required_keys = [
+            "startuuidcode",
+            "hostname",
+            "svc_port",
+            "target_node",
+            "target_port",
+        ]
         for key in required_keys:
             if key not in self.initial_data.keys():
                 self._validated_data = []
