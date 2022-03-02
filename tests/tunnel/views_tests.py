@@ -197,16 +197,34 @@ class TunnelViewTests(UserCredentials):
         )
         self.assertEqual(response.status_code, 500)
 
-        # First check call when trying to start tunnel
+        # First check call when trying to start tunnel, then 3 create calls
         # Second check call when trying to stop tunnel
         # Both fail, so no further calls
         self.assertEqual(
             mocked_popen_init.call_args_list[0][0][0],
             self.expected_popen_args_tunnel_check,
         )
+        for i in range(1, 3):
+            self.assertEqual(
+                mocked_popen_init.call_args_list[i][0][0],
+                self.expected_popen_args_tunnel_create,
+            )
         self.assertEqual(
-            mocked_popen_init.call_args_list[1][0][0],
+            mocked_popen_init.call_args_list[3][0][0],
+            self.expected_popen_args_tunnel_create_v,
+        )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[4][0][0],
             self.expected_popen_args_tunnel_check,
+        )
+        for i in range(5, 7):
+            self.assertEqual(
+                mocked_popen_init.call_args_list[i][0][0],
+                self.expected_popen_args_tunnel_create,
+            )
+        self.assertEqual(
+            mocked_popen_init.call_args_list[7][0][0],
+            self.expected_popen_args_tunnel_create_v,
         )
 
     @mock.patch(
@@ -246,7 +264,7 @@ class TunnelViewTests(UserCredentials):
         response = self.client.post(
             url, headers=self.header, data=self.tunnel_data, format="json"
         )
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 201)
         self.assertEqual(
             mocked_popen_init.call_args_list[0][0][0],
             self.expected_popen_args_tunnel_check,
