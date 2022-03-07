@@ -10,6 +10,7 @@ from .mocks import mocked_popen_init_check_fail
 from .mocks import mocked_popen_init_forward_fail
 from .mocks import mocked_remote_popen_init
 from .mocks import mocked_remote_popen_init_218
+from .mocks import mocked_restart_popen_init
 from tests.user_credentials import UserCredentials
 from tunnel.models import TunnelModel
 
@@ -382,3 +383,68 @@ class TunnelViewTests(UserCredentials):
             mocked_popen_init.call_args_list[5][0][0][:-1],
             self.expected_popen_args_tunnel_forward,
         )
+
+
+class RemoteViewTests(UserCredentials):
+    def setUp(self):
+        return super().setUp()
+
+    url = "/api/restart/"
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_restart_popen_init,
+    )
+    def test_restart_view(self, mocked_popen_init):
+        data = {"hostname": "demo_hostname"}
+        response = self.client.post(self.url, data=data, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mocked_popen_init.call_count, 2)
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_restart_popen_init,
+    )
+    def test_restart_view_query_param(self, mocked_popen_init):
+        data = {}
+        response = self.client.post(
+            f"{self.url}?hostname=demo_hostname", data=data, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mocked_popen_init.call_count, 2)
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_restart_popen_init,
+    )
+    def test_restart_view_missing_hostname(self, mocked_popen_init):
+        data = {"no_hostname": "demo_hostname"}
+        response = self.client.post(self.url, data=data, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(mocked_popen_init.call_count, 0)
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_restart_popen_init,
+    )
+    def test_restart_view_existing_tunnels(self, mocked_popen_init):
+        data = {"hostname": "demo_hostname"}
+        tunnel_url = reverse("tunnel-list")
+        tunnel_data = {
+            "startuuidcode": "uuidcode",
+            "hostname": data["hostname"],
+            "svc_port": 8080,
+            "target_node": "targetnode",
+            "target_port": 34567,
+        }
+        tunnel_response = self.client.post(tunnel_url, data=tunnel_data, format="json")
+        self.assertEqual(tunnel_response.status_code, 201)
+        models = TunnelModel.objects.all()
+        self.assertEqual(len(models), 1)
+        response = self.client.post(self.url, data=data, format="json")
+        self.assertEqual(response.status_code, 200)
+        # 8 Calls expected
+        # check/forward to create tunnel before (1-2)
+        # check/cancel + check/forward for previously created tunnel (3-6)
+        # remote_stop / remote_start (7-8)
+        self.assertEqual(mocked_popen_init.call_count, 8)
