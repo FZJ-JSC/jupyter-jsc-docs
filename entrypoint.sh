@@ -37,7 +37,7 @@ elif [[ -z ${SQL_DATABASE} ]]; then
     su tunnel -c "python3 /home/tunnel/web/manage.py makemigrations"
     su tunnel -c "python3 /home/tunnel/web/manage.py migrate"
     su tunnel -c "echo \"import os; from django.contrib.auth.models import User; tunnelpass=os.environ.get('TUNNEL_SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', tunnelpass)\" | python3 manage.py shell"
-    su tunnel -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_logging');\" | python3 manage.py shell"
+    su tunnel -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_webservice_restart'); Group.objects.create(name='access_to_logging');\" | python3 manage.py shell"
     su tunnel -c "echo \"from logs.models import HandlerModel; data = {'handler': 'stream', 'configuration': {'level': 10, 'formatter': 'simple', 'stream': 'ext://sys.stdout'}}; HandlerModel(**data).save()\" | python3 manage.py shell"
     echo "$(date) Admin password: ${TUNNEL_SUPERUSER_PASS}"
     if [[ -n ${BACKEND_USER_PASS} ]]; then
@@ -45,6 +45,9 @@ elif [[ -z ${SQL_DATABASE} ]]; then
     fi
     if [[ -n ${JUPYTERHUB_USER_PASS} ]]; then
         su tunnel -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; jhub_pass=os.environ.get('JUPYTERHUB_USER_PASS'); user = User.objects.create(username='jupyterhub'); user.set_password(jhub_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['JUPYTERHUB_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice').first(); group2 = Group.objects.filter(name='access_to_logging').first(); user.groups.add(group1); user.groups.add(group2)\" | python3 manage.py shell"
+    fi
+    if [[ -n ${K8SMGR_USER_PASS} ]]; then
+        su tunnel -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; k8smgr_pass=os.environ.get('K8SMGR_USER_PASS'); user = User.objects.create(username='k8smgr'); user.set_password(k8smgr_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['K8SMGR_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice_restart').first(); user.groups.add(group1)\" | python3 manage.py shell"
     fi
 fi
 
