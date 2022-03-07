@@ -3,10 +3,10 @@ import copy
 import logging
 import uuid
 
-from django.http.response import Http404
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework import utils
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -21,6 +21,32 @@ from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 
 log = logging.getLogger(LOGGER_NAME)
+
+
+class RestartViewSet(GenericAPIView):
+    queryset_tunnel = TunnelModel.objects.all()
+    permission_classes = [HasGroupPermission]
+    required_groups = ["access_to_webservice_restart"]
+
+    @request_decorator
+    def post(self, request, *args, **kwargs):
+        hostname = request.data.get(
+            "hostname", request.query_params.dict().get("hostname", "")
+        )
+        if not hostname:
+            raise ValidationError("Hostname missing")
+        tunnels = self.queryset_tunnel.filter(hostname=hostname).all()
+        for tunnel in tunnels:
+            utils.stop_tunnel(
+                alert_admins=True, raise_exception=False, **tunnel.__dict__
+            )
+            utils.start_tunnel(
+                alert_admins=True, raise_exception=False, **tunnel.__dict__
+            )
+
+        utils.stop_remote(alert_admins=True, raise_exception=False, hostname=hostname)
+        utils.start_remote(alert_admins=True, raise_exception=False, hostname=hostname)
+        return Response(status=200)
 
 
 class TunnelViewSet(
