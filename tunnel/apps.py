@@ -2,13 +2,13 @@ import logging
 import os
 
 from django.apps import AppConfig
-from django.db.utils import OperationalError
 
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 from tunnel.utils import k8s_svc
 from tunnel.utils import start_remote
 from tunnel.utils import start_tunnel
 from tunnel.utils import stop_tunnel
+
 
 log = logging.getLogger(LOGGER_NAME)
 
@@ -78,11 +78,10 @@ class TunnelConfig(AppConfig):
         if os.environ.get("UWSGI_START", "false").lower() == "true":
             try:
                 self.start_tunnels_in_db()
-            except OperationalError:
-                pass
-
+            except:
+                log.exception("Unexpected error during startup")
             try:
                 self.start_remote_in_config_file()
-            except OperationalError:
-                pass
+            except:
+                log.exception("Unexpected error during startup")
         return super().ready()
