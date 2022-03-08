@@ -137,6 +137,7 @@ def run_popen_cmd(
                 alert_admins=alert_admins,
                 max_attempts=max_attempts - 1,
                 verbose=max_attempts == 2,
+                expected_returncodes=expected_returncodes,
                 **kwargs,
             )
         alert_admins_log[alert_admins](
