@@ -1,8 +1,0 @@
-[run]
-source = tunnel
-omit = 
-   tests/*/*tests.py
-
-[report]
-show_missing = True
-skip_covered = True

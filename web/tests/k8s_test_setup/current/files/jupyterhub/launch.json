@@ -1,0 +1,20 @@
+{
+  "version": "1.4.2",
+  "configurations": [
+    {
+      "name": "JupyterHub",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "deletedb",
+      "program": "/usr/bin/jupyterhub",
+      "args": [
+        "-f",
+        "/home/jupyterhub/jupyterhub_config.py"
+      ],
+      "env": {
+        "JUPYTERHUB_CRYPT_KEY": "06e35ed347ec42859d52198b1773af86",
+        "PYTHONPATH": "/src/jupyterhub-patched:/src/jupyterhub-custom"
+      }
+    }
+  ]
+}

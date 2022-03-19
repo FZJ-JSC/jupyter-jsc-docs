@@ -14,5 +14,4 @@ repos:
   - id: check-json
   - id: check-case-conflict
   - id: check-executables-have-shebangs
-  - id: requirements-txt-fixer
   - id: flake8

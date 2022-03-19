@@ -1,115 +1,46 @@
-# This file is a template, and might need editing before it works on your project.
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/ee/development/cicd/templates.html
-# This specific template is located at:
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Docker.gitlab-ci.yml
-
-# Build a Docker image with CI/CD and push to the GitLab registry.
-# Docker-in-Docker documentation: https://docs.gitlab.com/ee/ci/docker/using_docker_build.html
-#
-# This template uses one generic job with conditional builds
-# for the default branch and all other (MR) branches.
-#
-#
-# This Pipeline will:
-#   1. build images with $CI_COMMIT_SHORT_SHA as tag.
-#   2. Start images as service and run a few tests against them.
-#   3. if a tag is pushed:
-#        Push the image with $CI_COMMIT_TAG and latest as tag.
-#
-# If it fails, we let the registry garbage collector cleanup the $CI_COMMIT_SHORT_SHA images
-
-
 stages:
   - unittest
-  - build
-  - functional-tests
+  - build-devel
   - build-tag
-
-variables:
-  CURRENT_RC_TAG: "31cd2434"
-  UNICORE_SERVER_VERSION: "8.3.0-5"
-  TESTING_CA_ROOT_B64: $TESTING_CA_ROOT_B64
-  TUNNEL_SECRET_KEY: $TUNNEL_SECRET_KEY
-  TUNNEL_SUPERUSER_PASS: $TUNNEL_SUPERUSER_PASS
-  TUNNEL_SUPERUSER_PASS_B64: $TUNNEL_SUPERUSER_PASS_B64
-  TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY: $TUNNELSERVICE_SSH_REMOTE_PRIVATE_KEY
-  TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY: $TUNNELSERVICE_SSH_TUNNEL_PRIVATE_KEY
-  LJUPYTER_SSH_TUNNEL_PUBLIC_KEY: $LJUPYTER_SSH_TUNNEL_PUBLIC_KEY
-  K8S_TEST_CLUSTER_CA_AUTH_DATA: $K8S_TEST_CLUSTER_CA_AUTH_DATA
-  K8S_TEST_CLUSTER_USER_TOKEN: $K8S_TEST_CLUSTER_USER_TOKEN
-  K8S_TEST_CLUSTER_SERVER: $K8S_TEST_CLUSTER_SERVER
 
 workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == "devel"
       variables:
         RUN_UNIT_TESTS: "True"
-        BUILD_COMMIT_TAG: "True"
-        FUNCTIONAL_TEST_TAG: ${CI_COMMIT_SHORT_SHA}
-    - if: $CI_COMMIT_BRANCH == "devel-ft"
-      variables:
-        RUN_UNIT_TESTS: "False"
-        BUILD_COMMIT_TAG: "False"
-        FUNCTIONAL_TEST_TAG: $CURRENT_RC_TAG
+        RUN_BUILD_DEVEL: "True"
     - if: $CI_COMMIT_TAG
       variables:
         RUN_UNIT_TESTS: "True"
-        BUILD_COMMIT_TAG: "True"
-        RUN_FUNCTIONAL_TESTS: "True"
-        FUNCTIONAL_TEST_TAG: ${CI_COMMIT_SHORT_SHA}
+        RUN_BUILD_DEVEL: "True"
     - when: never
 
-unittest:
+unittests:
   stage: unittest
   image:
     name: python:alpine3.14
   before_script:
-    - apk add gcc build-base linux-headers openssh
-    - pip3 install -r ${CI_PROJECT_DIR}/build-requirements.txt
+    - pip3 install -U pip && pip3 install -r ${CI_PROJECT_DIR}/devel/requirements_build.txt
   script:
-    - pytest -c ${CI_PROJECT_DIR}/tests/logs/pytest.ini
-    - pytest -c ${CI_PROJECT_DIR}/tests/tunnel/pytest.ini
+    - cd ${CI_PROJECT_DIR} && pytest -c ${CI_PROJECT_DIR}/web/tests/logs/pytest.ini
+    - cd ${CI_PROJECT_DIR} && pytest -c ${CI_PROJECT_DIR}/web/tests/tunnel/pytest.ini
   rules:
     - if: $RUN_UNIT_TESTS == "True"
 
-kaniko-build:
-  stage: build
+build-devel:
+  stage: build-devel
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+    - sed -i -e "s/<VERSION>/${CI_COMMIT_TAG} (${CI_COMMIT_SHORT_SHA})/g" ${CI_PROJECT_DIR}/web/logs/apps.py
+    - /kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/devel/Dockerfile --cache=true --cache-copy-layers=true --destination ${CI_REGISTRY_IMAGE}:devel
   rules:
-    - if: $BUILD_COMMIT_TAG == "True"
+    - if: $RUN_BUILD_DEVEL == "True"
 
-functional-tests-in-k8s:
-  stage: functional-tests
-  image: 
-    name: python:3.9.10-slim
-    entrypoint: [""]
-  before_script:
-    - apt update && apt install -y apt-transport-https ca-certificates curl keychain uuid-runtime
-    - curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-    - echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
-    - apt update && apt install -y kubectl
-    - pip install -r ${CI_PROJECT_DIR}/tests/functional_tests/requirements.txt
-    - sed -i -e "s@<K8S_TEST_CLUSTER_SERVER>@${K8S_TEST_CLUSTER_SERVER}@g" -e "s@<K8S_TEST_CLUSTER_CA_AUTH_DATA>@${K8S_TEST_CLUSTER_CA_AUTH_DATA}@g" -e "s@<K8S_TEST_CLUSTER_USER_TOKEN>@${K8S_TEST_CLUSTER_USER_TOKEN}@g" ${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
-    - cp ${CI_PROJECT_DIR}/tests/k8s_test_setup/templates/certs/ca-root.pem /usr/local/share/ca-certificates/ca-root.crt
-    - update-ca-certificates
-  script:
-    - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
-    - /bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/create_resources.sh ${FUNCTIONAL_TEST_TAG}
-    - pytest -c ${CI_PROJECT_DIR}/tests/k8s_test_setup/current/files/pytest.ini
-  after_script:
-    - export KUBECONFIG=${CI_PROJECT_DIR}/tests/k8s_test_setup/kube_config
-    - /bin/bash ${CI_PROJECT_DIR}/tests/k8s_test_setup/delete_resources.sh
-  rules:
-    - if: $FUNCTIONAL_TEST_TAG
-
-kaniko-build-tag:
+build-tag:
   stage: build-tag
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -117,6 +48,7 @@ kaniko-build-tag:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+    - sed -i -e "s/<VERSION>/${CI_COMMIT_TAG} (${CI_COMMIT_SHORT_SHA})/g" ${CI_PROJECT_DIR}/web/logs/apps.py
+    - /kaniko/executor --context $CI_PROJECT_DIR --cache=true --cache-copy-layers=true --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG} --destination ${CI_REGISTRY_IMAGE}:latest
   rules:
     - if: $CI_COMMIT_TAG

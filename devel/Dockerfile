@@ -1,4 +1,6 @@
-FROM python:3.8.12-alpine3.14
+FROM ubuntu:focal-20220302
+
+ENV DEBIAN_FRONTEND noninteractive
 
 ENV USERNAME=tunnel
 
@@ -9,35 +11,43 @@ RUN adduser --uid 1000 --ingroup users --gecos "" --disabled-password ${USERNAME
 ENV HOME=/home/${USERNAME}
 ENV APP_HOME=/home/${USERNAME}/web
 RUN mkdir -p ${APP_HOME} && \
-    mkdir -p ${HOME}/certs
+    mkdir -p ${HOME}/certs && \
+    mkdir -p ${HOME}/services/services && \
+    mkdir -p ${HOME}/services/job_descriptions && \
+    mkdir -p ${HOME}/userhomes
 WORKDIR ${APP_HOME}
 
-RUN apk update && \
-    apk upgrade && \
-    pip install -U pip
+RUN apt update && \
+    apt -y upgrade && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* 
     
 # Install app requirements
 COPY ./requirements_pip.txt /tmp/requirements_pip.txt
-COPY ./requirements_apk.txt /tmp/requirements_apk.txt
-RUN apk add --virtual=build_dependencies build-base && \
-    cat /tmp/requirements_apk.txt | xargs apk add && \
+COPY devel/requirements_apt.txt /tmp/requirements_apt.txt
+RUN apt update && \
+    cat /tmp/requirements_apt.txt | xargs apt install -yq && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* && \
     pip install -r /tmp/requirements_pip.txt && \
-    apk del --purge -r build_dependencies && \
     chown -R ${USERNAME}:users ${HOME} && \
     rm /tmp/requirements_pip.txt && \
-    rm /tmp/requirements_apk.txt && \
+    rm /tmp/requirements_apt.txt && \
     sed -i -r \
     -e "s/^#PasswordAuthentication yes/PasswordAuthentication no/g" \
     -e "s/^AllowTcpForwarding no/AllowTcpForwarding yes/g" \
     -e "s/^#Port 22/Port 2222/g" \
     /etc/ssh/sshd_config && \
-    sed -i -r \
-    -e "s/^${USERNAME}:!:/${USERNAME}::/g" \
-    /etc/shadow && \
+    mkdir -p /run/sshd && \
     ssh-keygen -A
+
+RUN echo ${USERNAME}:$(uuidgen) | chpasswd
 
 # copy project
 COPY web ${APP_HOME}
+
+# Add devel entrypoint
+COPY devel/entrypoint.sh ${APP_HOME}/entrypoint.sh
 
 # chown all the files to the app user
 RUN chown -R ${USERNAME}:users ${APP_HOME}

@@ -1,0 +1,3 @@
+# DemoSite
+no-pty,no-X11-forwarding,no-agent-forwarding,command="/bin/echo No commands allowed" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINR/juN7pwsel7MyvGltGwH3G03MyVr4Fpo3KloiBbmP kreuzer@zam211
+no-pty,no-X11-forwarding,no-agent-forwarding,no-port-forwarding,command="/bin/bash ~ljupyter/manage_tunnel.sh -a $(/bin/echo $SSH_ORIGINAL_COMMAND | sha512sum | cut -d \" \" -f 1) < /dev/null > /dev/null 2>&1" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGSp4tPDZTTK9ry/YOz2LvNwuooSRsDuCFghzm+LjMsT kreuzer@zam211

@@ -1,0 +1,3 @@
+# DemoSite
+restrict,port-forwarding,command="/bin/echo No commands allowed" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILIcihhymdre3oLX04NPWyEyMH2/HBukdD3e2wp7/mUw kreuzer@zam211
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjLgi+hR/4sLaFGtBmqZ0gD7KnwqEIJGQWuS6UqbRFP kreuzer@zam211
