@@ -10,6 +10,7 @@ if [[ -d /tmp/${USERNAME}_ssh ]]; then
     mkdir -p /home/${USERNAME}/.ssh
     cp -rp /tmp/${USERNAME}_ssh/* /home/${USERNAME}/.ssh/.
     chmod -R 400 /home/${USERNAME}/.ssh/*
+    chown -R ${USERNAME}:users /home/${USERNAME}/.ssh
 fi
 
 
