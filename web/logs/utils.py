@@ -86,7 +86,7 @@ supported_formatter_kwargs = {
 
 
 def create_logging_handler(handler_name, **configuration):
-    configuration_logs = copy.deepcopy(configuration)
+    configuration_logs = {"configuration": str(configuration)}
     formatter_name = configuration.pop("formatter")
     level = get_level(configuration.pop("level"))
 
