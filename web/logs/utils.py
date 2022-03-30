@@ -7,6 +7,7 @@ from jsonformatter import JsonFormatter
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 
 log = logging.getLogger(LOGGER_NAME)
+assert log.__class__.__name__ == "ExtraLoggerClass"
 
 """
 This class allows us to log with extra arguments
@@ -114,12 +115,14 @@ def create_logging_handler(handler_name, **configuration):
     handler.setLevel(level)
     handler.setFormatter(formatter)
     logger = logging.getLogger(LOGGER_NAME)
+    assert logger.__class__.__name__ == "ExtraLoggerClass"
     logger.addHandler(handler)
     log.debug(f"Logging handler added ({handler_name})", extra=configuration_logs)
 
 
 def remove_logging_handler(handler_name):
     logger = logging.getLogger(LOGGER_NAME)
+    assert logger.__class__.__name__ == "ExtraLoggerClass"
     logger_handlers = logger.handlers
     logger.handlers = [x for x in logger_handlers if x.name != handler_name]
 

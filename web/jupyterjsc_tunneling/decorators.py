@@ -11,6 +11,7 @@ from .settings import LOGGER_NAME
 
 
 log = logging.getLogger(LOGGER_NAME)
+assert log.__class__.__name__ == "ExtraLoggerClass"
 
 """
 We have to run this function at every request. If we're running 
@@ -32,6 +33,7 @@ def request_decorator(func):
         from logs.models import HandlerModel
 
         logger = logging.getLogger(LOGGER_NAME)
+        assert logger.__class__.__name__ == "ExtraLoggerClass"
         active_handler = HandlerModel.objects.all()
         active_handler_dict = {x.handler: x.configuration for x in active_handler}
         if active_handler_dict != current_logger_configuration_mem:

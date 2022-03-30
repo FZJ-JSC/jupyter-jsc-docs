@@ -11,6 +11,7 @@ from .models import HandlerModel
 from .serializers import HandlerSerializer
 
 log = logging.getLogger(LOGGER_NAME)
+assert log.__class__.__name__ == "ExtraLoggerClass"
 
 
 class HandlerViewSet(viewsets.ModelViewSet):
@@ -33,5 +34,8 @@ class LogTestViewSet(viewsets.GenericViewSet):
         log.info("Info")
         log.warning("Warn")
         log.error("Error")
-        log.critical("Critical", extra={"Extra1": "message1", "mesg": "msg1"})
+        log.critical(
+            "Critical",
+            extra={"Extra1": "message1", "mesg": "msg1", "filename": "forbidden"},
+        )
         return Response(status=200)

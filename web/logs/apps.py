@@ -1,5 +1,45 @@
-import copy
 import logging
+
+# We might want to log forbidden extra keywords like "filename".
+# Instead of raising an exception, we just alter the keyword
+class ExtraLoggerClass(logging.Logger):
+    def trace(self, message, *args, **kws):
+        if self.isEnabledFor(5):
+            # Yes, logger takes its '*args' as 'args'.
+            self._log(5, message, args, **kws)
+
+    def makeRecord(
+        self,
+        name,
+        level,
+        fn,
+        lno,
+        msg,
+        args,
+        exc_info,
+        func=None,
+        extra=None,
+        sinfo=None,
+    ):
+        """
+        A factory method which can be overridden in subclasses to create
+        specialized LogRecords.
+        """
+        rv = logging._logRecordFactory(
+            name, level, fn, lno, msg, args, exc_info, func, sinfo
+        )
+        if extra is not None:
+            for key in extra:
+                if (key in ["message", "asctime"]) or (key in rv.__dict__):
+                    rv.__dict__[f"{key}_extra"] = extra[key]
+                else:
+                    rv.__dict__[key] = extra[key]
+        return rv
+
+
+logging.setLoggerClass(ExtraLoggerClass)
+
+import copy
 import os
 
 from django.apps import AppConfig
@@ -9,6 +49,7 @@ from logs.utils import create_logging_handler
 from logs.utils import remove_logging_handler
 
 logger = logging.getLogger(LOGGER_NAME)
+assert logger.__class__.__name__ == "ExtraLoggerClass"
 
 
 class LogsConfig(AppConfig):
@@ -17,13 +58,6 @@ class LogsConfig(AppConfig):
 
     def start_logger(self):
         logging.addLevelName(5, "TRACE")
-
-        def trace_func(self, message, *args, **kws):
-            if self.isEnabledFor(5):
-                # Yes, logger takes its '*args' as 'args'.
-                self._log(5, message, args, **kws)
-
-        logging.Logger.trace = trace_func
         logging.getLogger(LOGGER_NAME).setLevel(5)
         logging.getLogger(LOGGER_NAME).propagate = False
         logging.getLogger().setLevel(40)

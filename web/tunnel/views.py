@@ -21,6 +21,7 @@ from .serializers import TunnelSerializer
 
 
 log = logging.getLogger(LOGGER_NAME)
+assert log.__class__.__name__ == "ExtraLoggerClass"
 
 
 class RestartViewSet(GenericAPIView):
