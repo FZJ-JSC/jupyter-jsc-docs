@@ -30,7 +30,7 @@ else
         export SUPERUSER_PASS=${SUPERUSER_PASS:-$(uuidgen)}
         su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py makemigrations"
         su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py migrate"
-        su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import User; adminpass=os.environ.get('TUNNEL_SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', adminpass)\" | python3 manage.py shell"
+        su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import User; adminpass=os.environ.get('SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', adminpass)\" | python3 manage.py shell"
         su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_webservice_restart'); Group.objects.create(name='access_to_logging');\" | python3 manage.py shell"
         su ${USERNAME} -c "echo \"from logs.models import HandlerModel; data = {'handler': 'stream', 'configuration': {'level': 10, 'formatter': 'simple', 'stream': 'ext://sys.stdout'}}; HandlerModel(**data).save()\" | python3 manage.py shell"
         echo "$(date) Admin password: ${SUPERUSER_PASS}"
