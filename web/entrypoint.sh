@@ -57,21 +57,20 @@ if [[ -z $WORKER ]]; then
         WORKER=1
 fi
 
-if [ -z ${UWSGI_PATH} ]; then
-    export UWSGI_SSL_CRT=${UWSGI_SSL_CRT:-/home/${USERNAME}/certs/${USERNAME}.crt}
-    export UWSGI_SSL_KEY=${UWSGI_SSL_KEY:-/home/${USERNAME}/certs/${USERNAME}.key}
-    if [[ -f ${UWSGI_SSL_CRT} && -f ${UWSGI_SSL_KEY} ]]; then
-        UWSGI_PATH=/home/${USERNAME}/web/uwsgi_https.ini
-        echo "Use ${UWSGI_PATH} as config file. Service will listen on port 8443."
-        echo "Use these files for ssl: ${UWSGI_SSL_CRT}, ${UWSGI_SSL_KEY}"
+if [ -z ${GUNICORN_PATH} ]; then
+    export GUNICORN_SSL_CRT=${GUNICORN_SSL_CRT:-/home/${USERNAME}/certs/${USERNAME}.crt}
+    export GUNICORN_SSL_KEY=${GUNICORN_SSL_KEY:-/home/${USERNAME}/certs/${USERNAME}.key}
+    if [[ -f ${GUNICORN_SSL_CRT} && -f ${GUNICORN_SSL_KEY} ]]; then
+        GUNICORN_PATH=/home/${USERNAME}/web/gunicorn_https.py
+        echo "Use ${GUNICORN_PATH} as config file. Service will listen on port 8443."
+        echo "Use these files for ssl: ${GUNICORN_SSL_CRT}, ${GUNICORN_SSL_KEY}"
     else
-        UWSGI_PATH=/home/${USERNAME}/web/uwsgi_http.ini
-        echo "Use ${UWSGI_PATH} as config file. Service will listen on port 8080."
+        GUNICORN_PATH=/home/${USERNAME}/web/gunicorn_http.py
+        echo "Use ${GUNICORN_PATH} as config file. Service will listen on port 8080."
     fi
 fi
 
-# Set Defaults for uwsgi and start
-export UWSGI_OFFLOAD_THREADS=${UWSGI_OFFLOAD_THREADS:-1}
-export UWSGI_PROCESSES=${UWSGI_PROCESSES:-4}
-export UWSGI_THREADS=${UWSGI_THREADS:-1}
-uwsgi --ini ${UWSGI_PATH}
+# Set Defaults for gunicorn and start
+export GUNICORN_PROCESSES=${GUNICORN_PROCESSES:-16}
+export GUNICORN_THREADS=${GUNICORN_THREADS:-1}
+gunicorn -c ${GUNICORN_PATH} jupyterjsc_tunneling.wsgi
