@@ -31,7 +31,7 @@ else
         su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py makemigrations"
         su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py migrate"
         su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import User; adminpass=os.environ.get('SUPERUSER_PASS'); User.objects.create_superuser('admin', 'admin@example.com', adminpass)\" | python3 manage.py shell"
-        su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_webservice_restart'); Group.objects.create(name='access_to_logging');\" | python3 manage.py shell"
+        su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import Group; Group.objects.create(name='access_to_webservice'); Group.objects.create(name='access_to_webservice_restart'); Group.objects.create(name='access_to_logging'); Group.objects.create(name='access_to_webservice_remote_check');\" | python3 manage.py shell"
         su ${USERNAME} -c "echo \"from logs.models import HandlerModel; data = {'handler': 'stream', 'configuration': {'level': 10, 'formatter': 'simple', 'stream': 'ext://sys.stdout'}}; HandlerModel(**data).save()\" | python3 manage.py shell"
         echo "$(date) Admin password: ${SUPERUSER_PASS}"
         if [[ -n ${JUPYTERHUB_USER_PASS} ]]; then
@@ -39,6 +39,9 @@ else
         fi
         if [[ -n ${K8SMGR_USER_PASS} ]]; then
             su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; k8smgr_pass=os.environ.get('K8SMGR_USER_PASS'); user = User.objects.create(username='k8smgr'); user.set_password(k8smgr_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['K8SMGR_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice_restart').first(); user.groups.add(group1)\" | python3 manage.py shell"
+        fi
+        if [[ -n ${REMOTECHECK_USER_PASS} ]]; then
+            su ${USERNAME} -c "echo \"import os; from django.contrib.auth.models import Group, User; from rest_framework.authtoken.models import Token; remotecheck_pass=os.environ.get('REMOTECHECK_USER_PASS'); user = User.objects.create(username='remotecheck'); user.set_password(remotecheck_pass); user.save(); user.auth_token = Token.objects.create(user=user); os.environ['REMOTECHECK_USER_TOKEN'] = user.auth_token.key; group1 = Group.objects.filter(name='access_to_webservice_remote_check').first(); user.groups.add(group1)\" | python3 manage.py shell"
         fi
     fi
 fi
