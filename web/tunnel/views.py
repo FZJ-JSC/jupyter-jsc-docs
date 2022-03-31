@@ -35,12 +35,14 @@ class RestartViewSet(GenericAPIView):
         if not hostname:
             raise ValidationError("Hostname missing")
         custom_headers = utils.get_custom_headers(self.request._request.META)
-        log.info(f"POST Restart for {hostname}", extra=custom_headers)
+        log.info(
+            f"Restart for all tunnels requested for {hostname}", extra=custom_headers
+        )
         tunnels = self.queryset_tunnel.filter(hostname=hostname).all()
         for tunnel in tunnels:
             kwargs = copy.deepcopy(tunnel.__dict__)
             kwargs.update(custom_headers)
-            log.debug(f"Stop tunnel for {hostname}", extra=kwargs)
+            log.debug(f"Restart tunnel for {hostname}", extra=kwargs)
             utils.stop_tunnel(alert_admins=True, raise_exception=False, **kwargs)
             utils.start_tunnel(alert_admins=True, raise_exception=False, **kwargs)
 

@@ -141,10 +141,12 @@ def run_popen_cmd(
                 expected_returncodes=expected_returncodes,
                 **kwargs,
             )
-        alert_admins_log[alert_admins](
-            f"{log_msg} failed. Action may be required",
-            extra=log_extra,
-        )
+        if not action == "check":
+            # Check is expected to fail. So no extra log required
+            alert_admins_log[alert_admins](
+                f"{log_msg} failed. Action may be required",
+                extra=log_extra,
+            )
         raise Exception(
             f"unexpected returncode: {returncode} not in {expected_returncodes}"
         )
@@ -356,9 +358,9 @@ def k8s_delete_svc(**kwargs):
 
 
 k8s_log = {
-    "create": log.debug,
+    "create": log.info,
     # "get": log.debug,
-    "delete": log.debug,
+    "delete": log.info,
 }
 
 k8s_func = {
@@ -373,7 +375,6 @@ def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
     k8s_log[action](f"Call K8s API to {action} svc ...", extra=log_extra)
     try:
         response = k8s_func[action](**kwargs)
-        log_extra["k8s_response"] = response
     except Exception as e:
         alert_admins_log[alert_admins](
             f"Call K8s API to {action} svc failed", exc_info=True, extra=log_extra
@@ -382,6 +383,8 @@ def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
             raise TunnelExceptionError(f"Call K8s API to {action} svc failed", str(e))
     else:
         k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)
+        log_extra["k8s_response"] = response
+        log.debug(f"Call K8s API to {action} svc output", extra=log_extra)
 
 
 def start_remote_from_config_file(uuidcode="", hostname=""):
@@ -412,7 +415,7 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
         try:
             start_remote(**kwargs)
         except:
-            log.exception("Could not start ssh remote tunnel at StartUp", extra=kwargs)
+            log.exception("Could not start ssh remote tunnel", extra=kwargs)
 
 
 def get_custom_headers(request_headers):

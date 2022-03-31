@@ -7,6 +7,7 @@ from tunnel.utils import k8s_svc
 from tunnel.utils import start_remote
 from tunnel.utils import start_remote_from_config_file
 from tunnel.utils import start_tunnel
+from tunnel.utils import stop_and_delete
 from tunnel.utils import stop_tunnel
 
 
@@ -22,7 +23,7 @@ class TunnelConfig(AppConfig):
         from .models import TunnelModel
 
         uuidcode = "StartUp Tunnel"
-        log.info("Start db-tunnels", extra={"uuidcode": uuidcode})
+        log.info("Start all tunnels saved in database", extra={"uuidcode": uuidcode})
         tunnels = TunnelModel.objects.all()
         for tunnel in tunnels:
             try:
@@ -31,21 +32,28 @@ class TunnelConfig(AppConfig):
                 start_tunnel(**kwargs)
             except:
                 log.exception("Could not start ssh tunnel at StartUp", extra=kwargs)
-                log.info("Delete k8s svc, if it exists")
+                log.debug("Delete k8s svc, if it exists", extra=kwargs)
                 try:
                     k8s_svc("delete", alert_admins=True, **kwargs)
                 except:
-                    log.exception("Could not delete k8s service", extra=kwargs)
+                    log.debug(
+                        "Could not delete k8s service", extra=kwargs, exc_info=True
+                    )
                 continue
             try:
-                log.info("Create k8s svc")
+                log.debug("Create k8s svc")
                 k8s_svc("create", alert_admins=True, **kwargs)
             except:
-                log.exception("Could not create k8s service", extra=kwargs)
+                log.warning(
+                    "Could not create k8s service. Stop/Delete tunnel",
+                    extra=kwargs,
+                    exc_info=True,
+                )
                 try:
-                    stop_tunnel(**kwargs)
+                    stop_and_delete(raise_exception=False, **kwargs)
+                    tunnel.delete()
                 except:
-                    log.exception("Could not stop ssh tunnel", extra=kwargs)
+                    log.exception("Could not stop/delete ssh tunnel", extra=kwargs)
 
     def ready(self):
         if os.environ.get("UWSGI_START", "false").lower() == "true":
