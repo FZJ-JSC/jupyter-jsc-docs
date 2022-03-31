@@ -133,7 +133,7 @@ keepalive = 2
 
 daemon = False
 raw_env = [
-    "UWSGI_START=true",
+    "GUNICORN_START=true",
 ]
 pidfile = "/home/tunnel/gunicorn.pid"
 umask = 0

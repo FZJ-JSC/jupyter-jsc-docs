@@ -47,11 +47,10 @@ if [[ ! -d /home/${USERNAME}/web/static ]]; then
     echo "$(date) Collect static files ... done"
 fi
 
-export UWSGI_SSL_CRT=${UWSGI_SSL_CRT:-/home/${USERNAME}/certs/${USERNAME}.crt}
-export UWSGI_SSL_KEY=${UWSGI_SSL_KEY:-/home/${USERNAME}/certs/${USERNAME}.key}
-export UWSGI_OFFLOAD_THREADS=${UWSGI_OFFLOAD_THREADS:-1}
-export UWSGI_PROCESSES=${UWSGI_PROCESSES:-4}
-export UWSGI_THREADS=${UWSGI_THREADS:-1}
+export GUNICORN_SSL_CRT=${GUNICORN_SSL_CRT:-/home/${USERNAME}/certs/${USERNAME}.crt}
+export GUNICORN_SSL_KEY=${GUNICORN_SSL_KEY:-/home/${USERNAME}/certs/${USERNAME}.key}
+export GUNICORN_PROCESSES=${GUNICORN_PROCESSES:-16}
+export GUNICORN_THREADS=${GUNICORN_THREADS:-1}
 
 if [[ -d /tmp/${USERNAME}_vscode ]]; then
     mkdir -p /home/${USERNAME}/web/.vscode

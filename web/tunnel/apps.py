@@ -56,7 +56,7 @@ class TunnelConfig(AppConfig):
                     log.exception("Could not stop/delete ssh tunnel", extra=kwargs)
 
     def ready(self):
-        if os.environ.get("UWSGI_START", "false").lower() == "true":
+        if os.environ.get("GUNICORN_START", "false").lower() == "true":
             try:
                 self.start_tunnels_in_db()
             except:

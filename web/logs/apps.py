@@ -89,7 +89,7 @@ class LogsConfig(AppConfig):
         logger.info("logging handler setup done", extra={"uuidcode": "StartUp"})
 
     def ready(self):
-        if os.environ.get("UWSGI_START", "false").lower() == "true":
+        if os.environ.get("GUNICORN_START", "false").lower() == "true":
             self.start_logger()
             try:
                 self.add_handler()
