@@ -300,9 +300,9 @@ def k8s_get_client():
     return client.CoreV1Api()
 
 
-def k8s_get_svc_name(startuuidcode):
+def k8s_get_svc_name(servername):
     deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")[0:30]
-    return f"{deployment_name}-{startuuidcode}"[0:63]
+    return f"{deployment_name}-{servername}"[0:63]
 
 
 def k8s_get_svc_namespace():
@@ -312,7 +312,7 @@ def k8s_get_svc_namespace():
 def k8s_create_svc(**kwargs):
     v1 = k8s_get_client()
     deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")
-    name = k8s_get_svc_name(kwargs["startuuidcode"])
+    name = k8s_get_svc_name(kwargs["servername"])
     namespace = k8s_get_svc_namespace()
     service_manifest = {
         "apiVersion": "v1",
@@ -341,16 +341,16 @@ def k8s_create_svc(**kwargs):
     ).to_dict()
 
 
-# def k8s_get_svc(startuuidcode, **kwargs):
+# def k8s_get_svc(servername, **kwargs):
 #     v1 = k8s_get_client()
-#     name = k8s_get_svc_name(startuuidcode)
+#     name = k8s_get_svc_name(servername)
 #     namespace = k8s_get_svc_namespace()
 #     return v1.read_namespaced_service(name=name, namespace=namespace).to_dict()
 
 
 def k8s_delete_svc(**kwargs):
     v1 = k8s_get_client()
-    name = k8s_get_svc_name(kwargs["startuuidcode"])
+    name = k8s_get_svc_name(kwargs["servername"])
     namespace = k8s_get_svc_namespace()
     return v1.delete_namespaced_service(name=name, namespace=namespace).to_dict()
 
@@ -413,3 +413,15 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
             start_remote(**kwargs)
         except:
             log.exception("Could not start ssh remote tunnel at StartUp", extra=kwargs)
+
+
+def get_custom_headers(request_headers):
+    if "headers" in request_headers.keys():
+        ret = copy.deepcopy(request_headers["headers"])
+        return ret
+    custom_header_keys = {"HTTP_UUIDCODE": "uuidcode", "HTTP_HOSTNAME": "hostname"}
+    ret = {}
+    for key, new_key in custom_header_keys.items():
+        if key in request_headers.keys():
+            ret[new_key] = request_headers[key]
+    return ret

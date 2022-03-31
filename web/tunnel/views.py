@@ -31,25 +31,22 @@ class RestartViewSet(GenericAPIView):
 
     @request_decorator
     def post(self, request, *args, **kwargs):
-        hostname = request.data.get(
-            "hostname", request.query_params.dict().get("hostname", "")
-        )
+        hostname = request.data.get("hostname", None)
         if not hostname:
             raise ValidationError("Hostname missing")
-        uuidcode = request._request.META.get("headers", {})
-        log.info(f"POST Restart for {hostname}")
+        custom_headers = utils.get_custom_headers(self.request._request.META)
+        log.info(f"POST Restart for {hostname}", extra=custom_headers)
         tunnels = self.queryset_tunnel.filter(hostname=hostname).all()
         for tunnel in tunnels:
-            log.debug(f"Stop tunnel for {hostname}", extra={})
-            utils.stop_tunnel(
-                alert_admins=True, raise_exception=False, **tunnel.__dict__
-            )
-            utils.start_tunnel(
-                alert_admins=True, raise_exception=False, **tunnel.__dict__
-            )
+            kwargs = copy.deepcopy(tunnel.__dict__)
+            kwargs.update(custom_headers)
+            log.debug(f"Stop tunnel for {hostname}", extra=kwargs)
+            utils.stop_tunnel(alert_admins=True, raise_exception=False, **kwargs)
+            utils.start_tunnel(alert_admins=True, raise_exception=False, **kwargs)
 
-        utils.stop_remote(alert_admins=True, raise_exception=False, hostname=hostname)
-        utils.start_remote(alert_admins=True, raise_exception=False, hostname=hostname)
+        custom_headers["hostname"] = hostname
+        utils.stop_remote(alert_admins=True, raise_exception=False, **custom_headers)
+        utils.start_remote(alert_admins=True, raise_exception=False, **custom_headers)
         return Response(status=200)
 
 
@@ -59,7 +56,9 @@ class RemoteCheckViewSet(GenericAPIView):
 
     @request_decorator
     def get(self, request, *args, **kwargs):
-        utils.start_remote_from_config_file()
+        utils.start_remote_from_config_file(
+            **utils.get_custom_headers(self.request._request.META)
+        )
         return Response(status=200)
 
 
@@ -73,16 +72,14 @@ class TunnelViewSet(
     serializer_class = TunnelSerializer
     queryset = TunnelModel.objects.all()
 
-    lookup_field = "startuuidcode"
+    lookup_field = "servername"
 
     permission_classes = [HasGroupPermission]
     required_groups = ["access_to_webservice"]
 
     def perform_create(self, serializer):
         data = copy.deepcopy(serializer.validated_data)
-        data["uuidcode"] = self.request.query_params.dict().get(
-            "uuidcode", uuid.uuid4().hex
-        )
+        data["uuidcode"] = data["servername"]
         try:
             utils.start_tunnel(alert_admins=True, raise_exception=True, **data)
             utils.k8s_svc("create", alert_admins=True, raise_exception=True, **data)
@@ -93,9 +90,9 @@ class TunnelViewSet(
         return super().perform_create(serializer)
 
     def perform_destroy(self, instance):
-        utils.stop_and_delete(
-            alert_admins=True, raise_exception=False, **instance.__dict__
-        )
+        data = utils.get_custom_headers(self.request._request.META)
+        data.update(instance.__dict__)
+        utils.stop_and_delete(alert_admins=True, raise_exception=False, **data)
         return super().perform_destroy(instance)
 
     @request_decorator
@@ -124,10 +121,8 @@ class RemoteViewSet(GenericAPIView):
         utils.start_remote(alert_admins=True, raise_exception=True, **data)
 
     def perform_destroy(self):
-        data = copy.deepcopy(self.request.query_params.dict())
-        if "uuidcode" not in data.keys():
-            data["uuidcode"] = uuid.uuid4().hex
-        utils.stop_remote(alert_admins=False, raise_exception=True, **data)
+        custom_headers = utils.get_custom_headers(self.request._request.META)
+        utils.stop_remote(alert_admins=False, raise_exception=True, **custom_headers)
 
     @request_decorator
     def post(self, request, *args, **kwargs):
@@ -141,7 +136,8 @@ class RemoteViewSet(GenericAPIView):
 
     @request_decorator
     def get(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.query_params.dict())
+        custom_headers = utils.get_custom_headers(self.request._request.META)
+        serializer = self.get_serializer(data=custom_headers)
         serializer.is_valid(raise_exception=True)
         return Response(data=serializer.validated_data, status=200)
 

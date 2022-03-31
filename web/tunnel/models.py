@@ -2,7 +2,7 @@ from django.db import models
 
 
 class TunnelModel(models.Model):
-    startuuidcode = models.TextField(primary_key=True)
+    servername = models.TextField(primary_key=True)
     hostname = models.TextField(null=False, max_length=32)
     local_port = models.IntegerField(null=False)
     svc_port = models.IntegerField(null=False)
@@ -11,4 +11,4 @@ class TunnelModel(models.Model):
     date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.startuuidcode}: ssh [...]@{self.hostname} -L {self.local_port}:{self.target_node}:{self.target_port}"
+        return f"{self.servername}: ssh [...]@{self.hostname} -L {self.local_port}:{self.target_node}:{self.target_port}"

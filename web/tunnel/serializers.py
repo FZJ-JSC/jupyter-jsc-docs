@@ -1,3 +1,4 @@
+import copy
 import uuid
 
 from rest_framework import serializers
@@ -5,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import Serializer
 
 from .models import TunnelModel
+from .utils import get_custom_headers
 from .utils import get_random_open_local_port
 from .utils import is_port_in_use
 from .utils import status_remote
@@ -15,7 +17,7 @@ class TunnelSerializer(serializers.ModelSerializer):
     class Meta:
         model = TunnelModel
         fields = [
-            "startuuidcode",
+            "servername",
             "hostname",
             "local_port",
             "svc_port",
@@ -25,7 +27,7 @@ class TunnelSerializer(serializers.ModelSerializer):
 
     def is_valid(self, raise_exception=False):
         required_keys = [
-            "startuuidcode",
+            "servername",
             "hostname",
             "svc_port",
             "target_node",
@@ -37,10 +39,12 @@ class TunnelSerializer(serializers.ModelSerializer):
                 self._errors = [f"Missing key in input data: {key}"]
                 raise ValidationError(self._errors)
 
-        startuuidcode = self.initial_data["startuuidcode"]
-        prev_model = TunnelModel.objects.filter(startuuidcode=startuuidcode).first()
+        servername = self.initial_data["servername"]
+        prev_model = TunnelModel.objects.filter(servername=servername).first()
         if prev_model is not None:
-            stop_and_delete(**prev_model.__dict__)
+            kwargs = copy.deepcopy(prev_model.__dict__)
+            kwargs["uuidcode"] = servername
+            stop_and_delete(**kwargs)
             prev_model.delete()
         return super().is_valid(raise_exception=raise_exception)
 
@@ -67,11 +71,5 @@ class RemoteSerializer(Serializer):
         return super().is_valid(raise_exception)
 
     def to_internal_value(self, data):
-        uuidcode = (
-            self.context["request"]
-            .query_params.dict()
-            .get("uuidcode", uuid.uuid4().hex)
-        )
-        data["uuidcode"] = uuidcode
         data["running"] = status_remote(alert_admins=True, raise_exception=True, **data)
         return data

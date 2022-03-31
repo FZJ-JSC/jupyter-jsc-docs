@@ -15,54 +15,9 @@ from .mocks import mocked_remote_popen_init_218
 from .mocks import mocked_restart_popen_init
 
 
-class RemoteViewTests(UserCredentials):
-    def setUp(self):
-        return super().setUp()
-
-    remote_data = {"hostname": "demo_site"}
-
-    @mock.patch(
-        "tunnel.utils.subprocess.Popen",
-        side_effect=mocked_remote_popen_init,
-    )
-    def test_create_data_received(self, mocked_popen_init):
-        url = "/api/remote/"
-        resp = self.client.post(url, data=self.remote_data, format="json")
-        self.assertTrue("running" in resp.data.keys())
-
-    @mock.patch(
-        "tunnel.utils.subprocess.Popen",
-        side_effect=mocked_remote_popen_init,
-    )
-    def test_retrieve_not_existing_running(self, mocked_popen_init):
-        url = "/api/remote/?hostname=demo_site"
-        resp = self.client.get(url, format="json")
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(resp.data["running"])
-
-    @mock.patch(
-        "tunnel.utils.subprocess.Popen",
-        side_effect=mocked_remote_popen_init_218,
-    )
-    def test_retrieve_not_existing_not_running(self, mocked_popen_init):
-        url = "/api/remote/?hostname=demo_site"
-        resp = self.client.get(url, format="json")
-        self.assertEqual(resp.status_code, 200)
-        self.assertFalse(resp.data["running"])
-
-    @mock.patch(
-        "tunnel.utils.subprocess.Popen",
-        side_effect=mocked_remote_popen_init_218,
-    )
-    def test_stop_not_existing(self, mocked_popen_init):
-        url = "/api/remote/?hostname=demo_site"
-        resp = self.client.delete(url, format="json")
-        self.assertEqual(resp.status_code, 204)
-
-
 class TunnelViewTests(UserCredentials):
     tunnel_data = {
-        "startuuidcode": "uuidcode",
+        "servername": "uuidcode",
         "hostname": "hostname",
         "svc_port": 8080,
         "target_node": "targetnode",
@@ -161,7 +116,7 @@ class TunnelViewTests(UserCredentials):
         self.client.post(url, headers=self.header, data=self.tunnel_data, format="json")
         models = TunnelModel.objects.all()
         model = models[0]
-        self.assertEqual(model.startuuidcode, self.tunnel_data["startuuidcode"])
+        self.assertEqual(model.servername, self.tunnel_data["servername"])
         self.assertEqual(model.hostname, self.tunnel_data["hostname"])
         self.assertEqual(model.target_node, self.tunnel_data["target_node"])
         self.assertEqual(model.target_port, self.tunnel_data["target_port"])
@@ -343,7 +298,7 @@ class TunnelViewTests(UserCredentials):
         "tunnel.utils.subprocess.Popen",
         side_effect=mocked_popen_init,
     )
-    def test_create_startuuidcode_already_exists(self, mocked_popen_init):
+    def test_create_servername_already_exists(self, mocked_popen_init):
         url = reverse("tunnel-list")
         response = self.client.post(
             url, headers=self.header, data=self.tunnel_data, format="json"
@@ -389,6 +344,46 @@ class RemoteViewTests(UserCredentials):
     def setUp(self):
         return super().setUp()
 
+    remote_data = {"hostname": "demo_site"}
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_remote_popen_init,
+    )
+    def test_create_data_received(self, mocked_popen_init):
+        url = "/api/remote/"
+        resp = self.client.post(url, data=self.remote_data, format="json")
+        self.assertTrue("running" in resp.data.keys())
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_remote_popen_init,
+    )
+    def test_retrieve_not_existing_running(self, mocked_popen_init):
+        url = "/api/remote/"
+        resp = self.client.get(url, headers=self.remote_data, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data["running"])
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_remote_popen_init_218,
+    )
+    def test_retrieve_not_existing_not_running(self, mocked_popen_init):
+        url = "/api/remote/"
+        resp = self.client.get(url, headers=self.remote_data, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data["running"])
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_remote_popen_init_218,
+    )
+    def test_stop_not_existing(self, mocked_popen_init):
+        url = "/api/remote/"
+        resp = self.client.delete(url, headers=self.remote_data, format="json")
+        self.assertEqual(resp.status_code, 204)
+
     url = "/api/restart/"
 
     @mock.patch(
@@ -398,18 +393,6 @@ class RemoteViewTests(UserCredentials):
     def test_restart_view(self, mocked_popen_init):
         data = {"hostname": "demo_hostname"}
         response = self.client.post(self.url, data=data, format="json")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(mocked_popen_init.call_count, 2)
-
-    @mock.patch(
-        "tunnel.utils.subprocess.Popen",
-        side_effect=mocked_restart_popen_init,
-    )
-    def test_restart_view_query_param(self, mocked_popen_init):
-        data = {}
-        response = self.client.post(
-            f"{self.url}?hostname=demo_hostname", data=data, format="json"
-        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(mocked_popen_init.call_count, 2)
 
@@ -431,7 +414,7 @@ class RemoteViewTests(UserCredentials):
         data = {"hostname": "demo_hostname"}
         tunnel_url = reverse("tunnel-list")
         tunnel_data = {
-            "startuuidcode": "uuidcode",
+            "servername": "uuidcode",
             "hostname": data["hostname"],
             "svc_port": 8080,
             "target_node": "targetnode",

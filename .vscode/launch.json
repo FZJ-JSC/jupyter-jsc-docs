@@ -6,7 +6,7 @@
             "type": "python",
             "request": "launch",
             "envFile": "${workspaceFolder}/.vscode/.envs",
-            "program": "${workspaceFolder}/manage.py",
+            "program": "${workspaceFolder}/web/manage.py",
             "args": [
                 "runserver",
                 "9000",
