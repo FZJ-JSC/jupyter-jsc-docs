@@ -92,9 +92,9 @@ action_log = {
     "check": log.debug,
     "create": log.debug,
     "forward": log.info,
-    "start": log.info,
+    "start": log.debug,
     "status": log.debug,
-    "stop": log.info,
+    "stop": log.debug,
 }
 
 
@@ -111,7 +111,7 @@ def run_popen_cmd(
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
     log_extra = copy.deepcopy(kwargs)
     log_extra["cmd"] = cmd
-    action_log[action](
+    log.debug(
         f"{log_msg} ...",
         extra=log_extra,
     )
@@ -372,7 +372,7 @@ k8s_func = {
 
 def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
     log_extra = copy.deepcopy(kwargs)
-    k8s_log[action](f"Call K8s API to {action} svc ...", extra=log_extra)
+    log.debug(f"Call K8s API to {action} svc ...", extra=log_extra)
     try:
         response = k8s_func[action](**kwargs)
     except Exception as e:
@@ -407,7 +407,7 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
         x[len(remote_prefix) :] for x in config_file if x.startswith(remote_prefix)
     ]
     kwargs["remote_hosts"] = remote_hosts_lines
-    log.info("Start db-remote-tunnels", extra=kwargs)
+    log.debug("Start remote tunnels (hostname={hostname})", extra=kwargs)
     for _hostname in remote_hosts_lines:
         if hostname and hostname != _hostname:
             continue
