@@ -302,11 +302,6 @@ def k8s_get_client():
     return client.CoreV1Api()
 
 
-def k8s_get_svc_name(servername):
-    deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")[0:30]
-    return f"{deployment_name}-{servername}"[0:63]
-
-
 def k8s_get_svc_namespace():
     return os.environ.get("DEPLOYMENT_NAMESPACE", "default")
 
@@ -314,7 +309,7 @@ def k8s_get_svc_namespace():
 def k8s_create_svc(**kwargs):
     v1 = k8s_get_client()
     deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")
-    name = k8s_get_svc_name(kwargs["servername"])
+    name = kwargs["svc_name"]
     namespace = k8s_get_svc_namespace()
     service_manifest = {
         "apiVersion": "v1",
@@ -352,7 +347,7 @@ def k8s_create_svc(**kwargs):
 
 def k8s_delete_svc(**kwargs):
     v1 = k8s_get_client()
-    name = k8s_get_svc_name(kwargs["servername"])
+    name = kwargs["svc_name"]
     namespace = k8s_get_svc_namespace()
     return v1.delete_namespaced_service(name=name, namespace=namespace).to_dict()
 

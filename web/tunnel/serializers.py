@@ -19,6 +19,7 @@ class TunnelSerializer(serializers.ModelSerializer):
         fields = [
             "servername",
             "hostname",
+            "svc_name",
             "local_port",
             "svc_port",
             "target_node",
@@ -29,6 +30,7 @@ class TunnelSerializer(serializers.ModelSerializer):
         required_keys = [
             "servername",
             "hostname",
+            "svc_name",
             "svc_port",
             "target_node",
             "target_port",

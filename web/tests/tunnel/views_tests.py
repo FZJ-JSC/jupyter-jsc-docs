@@ -19,6 +19,7 @@ class TunnelViewTests(UserCredentials):
     tunnel_data = {
         "servername": "uuidcode",
         "hostname": "hostname",
+        "svc_name": "hdfcloud-1",
         "svc_port": 8080,
         "target_node": "targetnode",
         "target_port": 34567,
@@ -417,6 +418,7 @@ class RemoteViewTests(UserCredentials):
             "servername": "uuidcode",
             "hostname": data["hostname"],
             "svc_port": 8080,
+            "svc_name": "hdfcloud_2",
             "target_node": "targetnode",
             "target_port": 34567,
         }
