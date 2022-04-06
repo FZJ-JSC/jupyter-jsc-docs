@@ -105,7 +105,7 @@ class HandlerSerializer(serializers.ModelSerializer):
                 self.is_valid_config_type("address", [list], "syslog")
                 self.is_valid_config(
                     "socktype",
-                    ["ext://socket.SOCK_DGRAM", "ext://socket.SOCK_DGRAM"],
+                    ["ext://socket.SOCK_STREAM", "ext://socket.SOCK_DGRAM"],
                     "syslog",
                 )
         except ValidationError as exc:
