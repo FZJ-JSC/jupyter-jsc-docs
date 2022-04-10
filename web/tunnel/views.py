@@ -97,6 +97,21 @@ class TunnelViewSet(
         utils.stop_and_delete(alert_admins=True, raise_exception=False, **data)
         return super().perform_destroy(instance)
 
+    def get_object(self):
+        try:
+            return super().get_object()
+        except TunnelModel.MultipleObjectsReturned:
+            log.warning("Multiple Objects found. Keep only latest one")
+            lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+            lookup_kwargs = {lookup_url_kwarg: self.kwargs[lookup_url_kwarg]}
+            models = self.get_queryset().filter(**lookup_kwargs).all()
+            ids = [x.id for x in models]
+            keep_id = max(ids)
+            for model in models:
+                if not model.id == keep_id:
+                    self.perform_destroy(model)
+            return super().get_object()
+
     @request_decorator
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
