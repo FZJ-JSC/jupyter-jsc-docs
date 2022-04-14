@@ -3,6 +3,9 @@
 USERNAME=${USERNAME}
 
 # Start sshd service
+if [[ -n $AUTHORIZED_KEYS_PATH ]]; then
+    sed -i -e "s@.ssh/authorized_keys@${AUTHORIZED_KEYS_PATH}@g" /etc/ssh/sshd_config
+fi
 export SSHD_LOG_PATH=${SSHD_LOG_PATH:-/home/${USERNAME}/sshd.log}
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
