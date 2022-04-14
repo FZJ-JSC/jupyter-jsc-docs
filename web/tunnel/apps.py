@@ -2,6 +2,8 @@ import logging
 import os
 
 from django.apps import AppConfig
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import User
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 from tunnel.utils import k8s_svc
 from tunnel.utils import start_remote
@@ -55,8 +57,57 @@ class TunnelConfig(AppConfig):
                 except:
                     log.exception("Could not stop/delete ssh tunnel", extra=kwargs)
 
+    def create_user(self, username, passwd, groups=[], superuser=False, mail=""):
+        if User.objects.filter(username=username).exists():
+            return
+        log.info(f"Create user {username}", extra={"uuidcode": "StartUp"})
+        if superuser:
+            User.objects.create_superuser(username, mail, passwd)
+            return
+        else:
+            user = User.objects.create(username=username)
+            user.set_password(passwd)
+            user.save()
+        for group in groups:
+            if not Group.objects.filter(name=group).exists():
+                Group.objects.create(name=group)
+            _group = Group.objects.filter(name=group).first()
+            user.groups.add(_group)
+
+    def setup_logger(self):
+        from logs.models import HandlerModel
+
+        data = {
+            "handler": "stream",
+            "configuration": {
+                "level": 10,
+                "formatter": "simple",
+                "stream": "ext://sys.stdout",
+            },
+        }
+        HandlerModel(**data).save()
+
     def ready(self):
         if os.environ.get("GUNICORN_START", "false").lower() == "true":
+            self.setup_logger()
+            user_groups = {
+                "jupyterhub": ["access_to_webservice", "access_to_logging"],
+                "k8smgr": ["access_to_webservice_restart"],
+                "remotecheck": ["access_to_webservice_remote_check"],
+            }
+
+            superuser_name = "admin"
+            superuser_mail = os.environ.get("SUPERUSER_MAIL", "admin@example.com")
+            superuser_pass = os.environ["SUPERUSER_PASS"]
+            self.create_user(
+                superuser_name, superuser_pass, superuser=True, mail=superuser_mail
+            )
+
+            for username, groups in user_groups.items():
+                userpass = os.environ.get(f"{username.upper()}_USER_PASS", None)
+                if userpass:
+                    self.create_user(username, userpass, groups=groups)
+
             try:
                 self.start_tunnels_in_db()
             except:
