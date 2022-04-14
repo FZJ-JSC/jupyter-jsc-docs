@@ -2,8 +2,6 @@ import logging
 import os
 
 from django.apps import AppConfig
-from django.contrib.auth.models import Group
-from django.contrib.auth.models import User
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 from tunnel.utils import k8s_svc
 from tunnel.utils import start_remote
@@ -58,6 +56,9 @@ class TunnelConfig(AppConfig):
                     log.exception("Could not stop/delete ssh tunnel", extra=kwargs)
 
     def create_user(self, username, passwd, groups=[], superuser=False, mail=""):
+        from django.contrib.auth.models import Group
+        from django.contrib.auth.models import User
+
         if User.objects.filter(username=username).exists():
             return
         log.info(f"Create user {username}", extra={"uuidcode": "StartUp"})
