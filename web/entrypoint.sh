@@ -33,7 +33,6 @@ export SUPERUSER_PASS=${SUPERUSER_PASS:-$(uuidgen)}
 su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py makemigrations"
 su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py migrate"
 echo "$(date) Admin password: ${SUPERUSER_PASS}"
-su ${USERNAME} -c "python3 /home/${USERNAME}/web/initdb.py"
 
 if [[ ! -d /home/${USERNAME}/web/static ]]; then
     echo "$(date) Collect static files ..."
