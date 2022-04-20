@@ -88,27 +88,30 @@ class TunnelConfig(AppConfig):
         }
         HandlerModel(**data).save()
 
+    def setup_db(self):
+        user_groups = {
+            "jupyterhub": ["access_to_webservice", "access_to_logging"],
+            "k8smgr": ["access_to_webservice_restart"],
+            "remotecheck": ["access_to_webservice_remote_check"],
+        }
+
+        superuser_name = "admin"
+        superuser_mail = os.environ.get("SUPERUSER_MAIL", "admin@example.com")
+        superuser_pass = os.environ["SUPERUSER_PASS"]
+        self.create_user(
+            superuser_name, superuser_pass, superuser=True, mail=superuser_mail
+        )
+
+        for username, groups in user_groups.items():
+            userpass = os.environ.get(f"{username.upper()}_USER_PASS", None)
+            if userpass:
+                self.create_user(username, userpass, groups=groups)
+
+
     def ready(self):
         if os.environ.get("GUNICORN_START", "false").lower() == "true":
             self.setup_logger()
-            user_groups = {
-                "jupyterhub": ["access_to_webservice", "access_to_logging"],
-                "k8smgr": ["access_to_webservice_restart"],
-                "remotecheck": ["access_to_webservice_remote_check"],
-            }
-
-            superuser_name = "admin"
-            superuser_mail = os.environ.get("SUPERUSER_MAIL", "admin@example.com")
-            superuser_pass = os.environ["SUPERUSER_PASS"]
-            self.create_user(
-                superuser_name, superuser_pass, superuser=True, mail=superuser_mail
-            )
-
-            for username, groups in user_groups.items():
-                userpass = os.environ.get(f"{username.upper()}_USER_PASS", None)
-                if userpass:
-                    self.create_user(username, userpass, groups=groups)
-
+            self.setup_db()
             try:
                 self.start_tunnels_in_db()
             except:
