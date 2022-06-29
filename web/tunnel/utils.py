@@ -219,6 +219,7 @@ def stop_tunnel(alert_admins=True, raise_exception=True, **kwargs):
 
 @check_tunnel_connection
 def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
+    alert_admins_log[alert_admins](f"validated data", extra=validated_data)
     log.debug(
         f"validated data hostname: {validated_data['hostname']}", extra=validated_data)
     if ".fz-juelich.de" in validated_data["hostname"]:
