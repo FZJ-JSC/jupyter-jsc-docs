@@ -111,6 +111,12 @@ def run_popen_cmd(
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
     log_extra = copy.deepcopy(kwargs)
     log_extra["cmd"] = cmd
+    if ".fz-juelich.de" in kwargs["hostname"]:
+        log.debug(
+            f"Not running popen command for {kwargs['hostname']}",
+            extra=log_extra,
+        )
+        return
     log.debug(
         f"{log_msg} ...",
         extra=log_extra,
@@ -197,9 +203,6 @@ def stop_and_delete(alert_admins=False, raise_exception=False, **kwargs):
 
 @check_tunnel_connection
 def stop_tunnel(alert_admins=True, raise_exception=True, **kwargs):
-    if ".fz-juelich.de" in kwargs["hostname"]:
-        log.debug(f"Not creating tunnel for {kwargs['hostname']}")
-        return
     try:
         run_popen_cmd(
             "tunnel",
@@ -219,15 +222,6 @@ def stop_tunnel(alert_admins=True, raise_exception=True, **kwargs):
 
 @check_tunnel_connection
 def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
-    alert_admins_log[alert_admins](f"validated data", extra=validated_data)
-    log.debug(
-        f"validated data hostname: {validated_data['hostname']}", extra=validated_data)
-    if ".fz-juelich.de" in validated_data["hostname"]:
-        log.debug(
-            f"Not creating tunnel for {validated_data['hostname']}",
-            extra=validated_data
-        )
-        return
     try:
         run_popen_cmd(
             "tunnel",
