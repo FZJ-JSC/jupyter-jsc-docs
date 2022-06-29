@@ -219,8 +219,13 @@ def stop_tunnel(alert_admins=True, raise_exception=True, **kwargs):
 
 @check_tunnel_connection
 def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
+    log.debug(
+        f"validated data hostname: {validated_data['hostname']}", extra=validated_data)
     if ".fz-juelich.de" in validated_data["hostname"]:
-        log.debug(f"Not creating tunnel for {validated_data['hostname']}")
+        log.debug(
+            f"Not creating tunnel for {validated_data['hostname']}",
+            extra=validated_data
+        )
         return
     try:
         run_popen_cmd(
