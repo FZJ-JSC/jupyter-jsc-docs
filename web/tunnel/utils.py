@@ -197,6 +197,9 @@ def stop_and_delete(alert_admins=False, raise_exception=False, **kwargs):
 
 @check_tunnel_connection
 def stop_tunnel(alert_admins=True, raise_exception=True, **kwargs):
+    if ".fz-juelich.de" in kwargs["hostname"]:
+        log.debug(f"Not creating tunnel for {kwargs['hostname']}")
+        return
     try:
         run_popen_cmd(
             "tunnel",
@@ -216,6 +219,9 @@ def stop_tunnel(alert_admins=True, raise_exception=True, **kwargs):
 
 @check_tunnel_connection
 def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
+    if ".fz-juelich.de" in validated_data["hostname"]:
+        log.debug(f"Not creating tunnel for {validated_data['hostname']}")
+        return
     try:
         run_popen_cmd(
             "tunnel",
