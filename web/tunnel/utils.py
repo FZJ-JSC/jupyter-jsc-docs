@@ -116,7 +116,7 @@ def run_popen_cmd(
             f"Not running popen command for {kwargs['hostname']}",
             extra=log_extra,
         )
-        return
+        return 0
     log.debug(
         f"{log_msg} ...",
         extra=log_extra,
