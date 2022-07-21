@@ -122,9 +122,12 @@ def run_popen_cmd(
         def result():
             os.setuid(1000)
             os.setgid(100)
+
         return result
-    
-    with subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid) as p:
+
+    with subprocess.Popen(
+        cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid()
+    ) as p:
         stdout, stderr = p.communicate()
         returncode = p.returncode
 
