@@ -40,20 +40,8 @@ class TunnelConfig(AppConfig):
                         "Could not delete k8s service", extra=kwargs, exc_info=True
                     )
                 continue
-            try:
-                log.debug("Create k8s svc")
-                k8s_svc("create", alert_admins=True, **kwargs)
-            except:
-                log.warning(
-                    "Could not create k8s service. Stop/Delete tunnel",
-                    extra=kwargs,
-                    exc_info=True,
-                )
-                try:
-                    stop_and_delete(raise_exception=False, **kwargs)
-                    tunnel.delete()
-                except:
-                    log.exception("Could not stop/delete ssh tunnel", extra=kwargs)
+            log.debug("Create k8s svc")
+            k8s_svc("create", alert_admins=True, raise_exception=False, **kwargs)
 
     def create_user(self, username, passwd, groups=[], superuser=False, mail=""):
         from django.contrib.auth.models import Group
