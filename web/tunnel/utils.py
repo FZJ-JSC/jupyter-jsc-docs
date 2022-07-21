@@ -116,7 +116,15 @@ def run_popen_cmd(
         extra=log_extra,
     )
 
-    with subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE) as p:
+    # gunicorn preload app feature does not use gunicorn user/group but
+    # the current uid instead. Which is root. We don't want to run commands as root.
+    def set_uid():
+        def result():
+            os.setuid(1000)
+            os.setgid(100)
+        return result
+    
+    with subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid) as p:
         stdout, stderr = p.communicate()
         returncode = p.returncode
 
