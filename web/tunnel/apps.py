@@ -77,11 +77,21 @@ class TunnelConfig(AppConfig):
         HandlerModel(**data).save()
 
     def setup_db(self):
-        user_groups = {
-            "jupyterhub": ["access_to_webservice", "access_to_logging"],
-            "k8smgr": ["access_to_webservice_restart"],
-            "remotecheck": ["access_to_webservice_remote_check"],
-        }
+        user_groups = {}
+        for key in os.environ.keys():
+            if key.endswith("_USER_PASS"):
+                username = key[: -len("_USER_PASS")].lower()
+                if username == "jupyterhub":
+                    user_groups[username] = [
+                        "access_to_webservice",
+                        "access_to_logging",
+                    ]
+                elif username.startswith("k8smgr"):
+                    user_groups[username] = ["access_to_webservice_restart"]
+                elif username.startswith("remotecheck"):
+                    user_groups[username] = ["access_to_webservice_remote_check"]
+                else:
+                    user_groups[username] = ["access_to_webservice"]
 
         superuser_name = "admin"
         superuser_mail = os.environ.get("SUPERUSER_MAIL", "admin@example.com")
@@ -94,7 +104,11 @@ class TunnelConfig(AppConfig):
             userpass = os.environ.get(f"{username.upper()}_USER_PASS", None)
             if userpass:
                 self.create_user(username, userpass, groups=groups)
-
+            else:
+                log.info(
+                    f"Do not create user {username} - password is missing",
+                    extra={"uuidcode": "StartUp"},
+                )
 
     def ready(self):
         if os.environ.get("GUNICORN_START", "false").lower() == "true":
