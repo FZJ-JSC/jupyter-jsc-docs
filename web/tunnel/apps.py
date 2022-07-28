@@ -40,20 +40,8 @@ class TunnelConfig(AppConfig):
                         "Could not delete k8s service", extra=kwargs, exc_info=True
                     )
                 continue
-            try:
-                log.debug("Create k8s svc")
-                k8s_svc("create", alert_admins=True, **kwargs)
-            except:
-                log.warning(
-                    "Could not create k8s service. Stop/Delete tunnel",
-                    extra=kwargs,
-                    exc_info=True,
-                )
-                try:
-                    stop_and_delete(raise_exception=False, **kwargs)
-                    tunnel.delete()
-                except:
-                    log.exception("Could not stop/delete ssh tunnel", extra=kwargs)
+            log.debug("Create k8s svc")
+            k8s_svc("create", alert_admins=True, raise_exception=False, **kwargs)
 
     def create_user(self, username, passwd, groups=[], superuser=False, mail=""):
         from django.contrib.auth.models import Group
@@ -89,11 +77,21 @@ class TunnelConfig(AppConfig):
         HandlerModel(**data).save()
 
     def setup_db(self):
-        user_groups = {
-            "jupyterhub": ["access_to_webservice", "access_to_logging"],
-            "k8smgr": ["access_to_webservice_restart"],
-            "remotecheck": ["access_to_webservice_remote_check"],
-        }
+        user_groups = {}
+        for key in os.environ.keys():
+            if key.endswith("_USER_PASS"):
+                username = key[: -len("_USER_PASS")].lower()
+                if username == "jupyterhub":
+                    user_groups[username] = [
+                        "access_to_webservice",
+                        "access_to_logging",
+                    ]
+                elif username.startswith("k8smgr"):
+                    user_groups[username] = ["access_to_webservice_restart"]
+                elif username.startswith("remotecheck"):
+                    user_groups[username] = ["access_to_webservice_remote_check"]
+                else:
+                    user_groups[username] = ["access_to_webservice"]
 
         superuser_name = "admin"
         superuser_mail = os.environ.get("SUPERUSER_MAIL", "admin@example.com")
@@ -106,7 +104,11 @@ class TunnelConfig(AppConfig):
             userpass = os.environ.get(f"{username.upper()}_USER_PASS", None)
             if userpass:
                 self.create_user(username, userpass, groups=groups)
-
+            else:
+                log.info(
+                    f"Do not create user {username} - password is missing",
+                    extra={"uuidcode": "StartUp"},
+                )
 
     def ready(self):
         if os.environ.get("GUNICORN_START", "false").lower() == "true":
