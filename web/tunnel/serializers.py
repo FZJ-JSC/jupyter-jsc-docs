@@ -44,7 +44,10 @@ class TunnelSerializer(serializers.ModelSerializer):
         servername = self.initial_data["servername"]
         prev_model = TunnelModel.objects.filter(servername=servername).first()
         if prev_model is not None:
-            kwargs = copy.deepcopy(prev_model.__dict__)
+            kwargs = {}
+            for key, value in prev_model.__dict__:
+                if key not in ["date", "_state"]:
+                    kwargs[key] = copy.deepcopy(value)
             kwargs["uuidcode"] = servername
             stop_and_delete(**kwargs)
             prev_model.delete()

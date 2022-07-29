@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 
@@ -27,7 +28,11 @@ class TunnelConfig(AppConfig):
         tunnels = TunnelModel.objects.all()
         for tunnel in tunnels:
             try:
-                kwargs = tunnel.__dict__
+
+                kwargs = {}
+                for key, value in tunnel.__dict__:
+                    if key not in ["date", "_state"]:
+                        kwargs[key] = copy.deepcopy(value)
                 kwargs["uuidcode"] = uuidcode
                 start_tunnel(**kwargs)
             except:
