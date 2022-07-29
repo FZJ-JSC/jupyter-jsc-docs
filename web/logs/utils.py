@@ -117,7 +117,7 @@ def create_logging_handler(handler_name, **configuration):
     logger = logging.getLogger(LOGGER_NAME)
     assert logger.__class__.__name__ == "ExtraLoggerClass"
     logger.addHandler(handler)
-    log.debug(f"Logging handler added ({handler_name})", extra=configuration_logs)
+    log.debug(f"Logging handler added ({handler_name})")
 
 
 def remove_logging_handler(handler_name):

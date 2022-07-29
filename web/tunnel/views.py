@@ -40,7 +40,11 @@ class RestartViewSet(GenericAPIView):
         )
         tunnels = self.queryset_tunnel.filter(hostname=hostname).all()
         for tunnel in tunnels:
-            kwargs = copy.deepcopy(tunnel.__dict__)
+            kwargs = {}
+            for key, value in tunnel.__dict__.items():
+                if key not in ["date", "_state"]:
+                    kwargs[key] = copy.deepcopy(value)
+
             kwargs.update(custom_headers)
             log.debug(f"Restart tunnel for {hostname}", extra=kwargs)
             utils.stop_tunnel(alert_admins=True, raise_exception=False, **kwargs)
@@ -92,8 +96,11 @@ class TunnelViewSet(
         return super().perform_create(serializer)
 
     def perform_destroy(self, instance):
-        data = utils.get_custom_headers(self.request._request.META)
-        data.update(instance.__dict__)
+        data = {}
+        for key, value in instance.__dict__.items():
+            if key not in ["date", "_state"]:
+                data[key] = copy.deepcopy(value)
+        data.update(utils.get_custom_headers(self.request._request.META))
         utils.stop_and_delete(alert_admins=True, raise_exception=False, **data)
         return super().perform_destroy(instance)
 
