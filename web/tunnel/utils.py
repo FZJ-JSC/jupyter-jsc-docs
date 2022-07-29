@@ -388,8 +388,6 @@ def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
             raise TunnelExceptionError(f"Call K8s API to {action} svc failed", str(e))
     else:
         k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)
-        log_extra["k8s_response"] = response
-        log.debug(f"Call K8s API to {action} svc output", extra=log_extra)
 
 
 def start_remote_from_config_file(uuidcode="", hostname=""):
