@@ -30,7 +30,7 @@ class TunnelConfig(AppConfig):
             try:
 
                 kwargs = {}
-                for key, value in tunnel.__dict__:
+                for key, value in tunnel.__dict__.items():
                     if key not in ["date", "_state"]:
                         kwargs[key] = copy.deepcopy(value)
                 kwargs["uuidcode"] = uuidcode

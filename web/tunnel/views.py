@@ -41,7 +41,7 @@ class RestartViewSet(GenericAPIView):
         tunnels = self.queryset_tunnel.filter(hostname=hostname).all()
         for tunnel in tunnels:
             kwargs = {}
-            for key, value in tunnel.__dict__:
+            for key, value in tunnel.__dict__.items():
                 if key not in ["date", "_state"]:
                     kwargs[key] = copy.deepcopy(value)
 
@@ -97,7 +97,7 @@ class TunnelViewSet(
 
     def perform_destroy(self, instance):
         data = {}
-        for key, value in instance.__dict__:
+        for key, value in instance.__dict__.items():
             if key not in ["date", "_state"]:
                 data[key] = copy.deepcopy(value)
         data.update(utils.get_custom_headers(self.request._request.META))
