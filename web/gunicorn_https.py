@@ -79,7 +79,7 @@ workers = int(os.environ.get("GUNICORN_PROCESSES", 16))
 threads = int(os.environ.get("GUNICORN_THREADS", 1))
 worker_class = "sync"
 # worker_connections = 1000
-timeout = 30
+timeout = int(os.environ.get("GUNICORN_TIMEOUT", 30))
 keepalive = 2
 
 #
