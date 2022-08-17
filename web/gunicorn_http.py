@@ -73,8 +73,8 @@ preload_app = True
 #       A positive integer. Generally set in the 1-5 seconds range.
 #
 
-workers = int(os.environ.get("GUNICORN_PROCESSES", 16))
-threads = int(os.environ.get("GUNICORN_THREADS", 1))
+workers = int(os.environ.get("GUNICORN_PROCESSES", 4))
+threads = int(os.environ.get("GUNICORN_THREADS", 4))
 worker_class = "sync"
 # worker_connections = 1000
 timeout = 30
@@ -190,3 +190,7 @@ access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 #
 #       A callable that takes a server instance as the sole argument.
 #
+
+# Max Requests used to reduce memory consumption
+max_requests = int(os.environ.get("GUNICORN_MAX_REQUESTS", 0))
+max_requests_jitter = int(os.environ.get("GUNICORN_MAX_REQUESTS_JITTER", 0))
