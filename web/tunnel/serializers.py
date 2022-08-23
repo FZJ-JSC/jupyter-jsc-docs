@@ -1,5 +1,7 @@
 import copy
-import uuid
+from typing import Dict
+import json
+import re
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -26,6 +28,29 @@ class TunnelSerializer(serializers.ModelSerializer):
             "target_port",
         ]
 
+    def check_input_keys(self, required_keys):
+        for key in required_keys:
+            if key not in self.initial_data.keys():
+                self._validated_data = []
+                self._errors = [f"Missing key in input data: {key}"]
+                raise ValidationError(self._errors)
+        custom_headers = get_custom_headers(self.context["request"]._request.META)
+        if "labels" in custom_headers:
+            try:
+                labels = json.loads(custom_headers["labels"])
+                if not isinstance(labels, dict):
+                    raise
+            except:
+                self._validated_data = []
+                self._errors = [f"Key labels must be a dict, got {type(labels)}"]
+                raise ValidationError(self._errors)
+            r = r'^[A-Za-z0-9][A-Za-z0-9._\-]*$'
+            for value in labels.values():
+                if not re.search(r, value):
+                    self._validated_data = []
+                    self._errors = [f"Label values must start with an alphanumerical and can only contain the special characters `.`, `-`, and `_`, got {value}"]
+                    raise ValidationError(self._errors)
+
     def is_valid(self, raise_exception=False):
         required_keys = [
             "servername",
@@ -35,11 +60,14 @@ class TunnelSerializer(serializers.ModelSerializer):
             "target_node",
             "target_port",
         ]
-        for key in required_keys:
-            if key not in self.initial_data.keys():
-                self._validated_data = []
-                self._errors = [f"Missing key in input data: {key}"]
-                raise ValidationError(self._errors)
+        try:
+            self.check_input_keys(required_keys)
+        except ValidationError as exc:
+            _errors = exc.detail
+        else:
+            _errors = {}
+        if _errors and raise_exception:
+            raise ValidationError(_errors)
 
         servername = self.initial_data["servername"]
         prev_model = TunnelModel.objects.filter(servername=servername).first()
@@ -55,6 +83,7 @@ class TunnelSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         data["local_port"] = get_random_open_local_port()
+        data.pop("labels", None)
         return data
 
     def to_representation(self, instance):
@@ -64,15 +93,17 @@ class TunnelSerializer(serializers.ModelSerializer):
 
 
 class RemoteSerializer(Serializer):
+    _errors = {}
+
     def is_valid(self, raise_exception=False):
-        _errors = {}
+        # _errors = {}
         required_keys = ["hostname"]
         for key in required_keys:
             if key not in self.initial_data.keys():
                 self._validated_data = []
-                _errors = [f"Missing key in input data: {key}"]
-        if _errors and raise_exception:
-            raise ValidationError(_errors)
+                self._errors = [f"Missing key in input data: {key}"]
+        if self._errors and raise_exception:
+            raise ValidationError(self._errors)
         return super().is_valid(raise_exception)
 
     def to_internal_value(self, data):

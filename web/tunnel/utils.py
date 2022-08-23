@@ -1,5 +1,6 @@
 import copy
 import logging
+import json
 import os
 import socket
 import subprocess
@@ -321,13 +322,14 @@ def k8s_create_svc(**kwargs):
     deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")
     name = kwargs["svc_name"]
     namespace = k8s_get_svc_namespace()
+    labels = {"name": name}
+    if kwargs["labels"]:
+        labels.update(json.loads(kwargs["labels"]))
     service_manifest = {
         "apiVersion": "v1",
         "kind": "Service",
         "metadata": {
-            "labels": {
-                "name": name,
-            },
+            "labels": labels,
             "name": name,
             "resourceversion": "v1",
         },
@@ -425,7 +427,7 @@ def get_custom_headers(request_headers):
     if "headers" in request_headers.keys():
         ret = copy.deepcopy(request_headers["headers"])
         return ret
-    custom_header_keys = {"HTTP_UUIDCODE": "uuidcode", "HTTP_HOSTNAME": "hostname"}
+    custom_header_keys = {"HTTP_UUIDCODE": "uuidcode", "HTTP_HOSTNAME": "hostname", "HTTP_LABELS": "labels"}
     ret = {}
     for key, new_key in custom_header_keys.items():
         if key in request_headers.keys():

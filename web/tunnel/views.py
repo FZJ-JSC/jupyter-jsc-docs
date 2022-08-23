@@ -86,6 +86,10 @@ class TunnelViewSet(
     def perform_create(self, serializer):
         data = copy.deepcopy(serializer.validated_data)
         data["uuidcode"] = data["servername"]
+
+        log.info(f"custom headers: {utils.get_custom_headers(self.request._request.META)}")
+
+        data.update(utils.get_custom_headers(self.request._request.META))
         try:
             utils.start_tunnel(alert_admins=True, raise_exception=True, **data)
             utils.k8s_svc("create", alert_admins=True, raise_exception=True, **data)

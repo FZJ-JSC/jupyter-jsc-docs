@@ -19,6 +19,7 @@ class TunnelViewTests(UserCredentials):
     tunnel_data = {
         "servername": "uuidcode",
         "hostname": "hostname",
+        "labels": {"test-label": "test-label-value"},
         "svc_name": "hdfcloud-1",
         "svc_port": 8080,
         "target_node": "targetnode",
@@ -105,7 +106,10 @@ class TunnelViewTests(UserCredentials):
         "-L",
     ]
 
-    header = {"uuidcode": "uuidcode123"}
+    header = {
+        "uuidcode": "uuidcode123",
+        "labels": '{"test-key": "test-value"}'
+    }
 
     @mock.patch(
         "tunnel.utils.subprocess.Popen",
@@ -119,6 +123,8 @@ class TunnelViewTests(UserCredentials):
         model = models[0]
         self.assertEqual(model.servername, self.tunnel_data["servername"])
         self.assertEqual(model.hostname, self.tunnel_data["hostname"])
+        self.assertEqual(model.svc_name, self.tunnel_data["svc_name"])
+        self.assertEqual(model.svc_port, self.tunnel_data["svc_port"])
         self.assertEqual(model.target_node, self.tunnel_data["target_node"])
         self.assertEqual(model.target_port, self.tunnel_data["target_port"])
         self.assertEqual(len(models), 1)
