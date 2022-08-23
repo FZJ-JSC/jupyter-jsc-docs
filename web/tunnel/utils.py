@@ -323,7 +323,7 @@ def k8s_create_svc(**kwargs):
     name = kwargs["svc_name"]
     namespace = k8s_get_svc_namespace()
     labels = {"name": name}
-    if kwargs["labels"]:
+    if kwargs.get("labels", {}):
         labels.update(json.loads(kwargs["labels"]))
     service_manifest = {
         "apiVersion": "v1",
