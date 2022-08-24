@@ -314,7 +314,7 @@ def k8s_get_client():
 
 
 def k8s_get_svc_namespace():
-    return os.environ.get("DEPLOYMENT_NAMESPACE", "default")
+    return os.environ.get("TUNNEL_SERVICES_NAMESPACE", "default")
 
 
 def k8s_create_svc(**kwargs):
