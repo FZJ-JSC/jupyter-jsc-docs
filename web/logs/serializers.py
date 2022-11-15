@@ -124,7 +124,7 @@ class HandlerSerializer(serializers.ModelSerializer):
         if self._errors and raise_exception:
             raise ValidationError(self._errors)
 
-        return super().is_valid(raise_exception)
+        return super().is_valid(raise_exception=raise_exception)
 
     def to_internal_value(self, data):
         handler_name = data["handler"]

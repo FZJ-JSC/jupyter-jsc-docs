@@ -104,7 +104,7 @@ class RemoteSerializer(Serializer):
                 self._errors = [f"Missing key in input data: {key}"]
         if self._errors and raise_exception:
             raise ValidationError(self._errors)
-        return super().is_valid(raise_exception)
+        return super().is_valid(raise_exception=raise_exception)
 
     def to_internal_value(self, data):
         data["running"] = status_remote(alert_admins=True, raise_exception=True, **data)
