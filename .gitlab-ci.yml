@@ -1,5 +1,6 @@
 stages:
   - unittest
+  - build
   - build-devel
   - build-tag
 
