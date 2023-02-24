@@ -320,6 +320,7 @@ def k8s_get_svc_namespace():
 def k8s_create_svc(**kwargs):
     v1 = k8s_get_client()
     deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")
+    pod_name = os.environ.get("HOSTNAME", "drf-tunnel-0")
     name = kwargs["svc_name"]
     namespace = k8s_get_svc_namespace()
     labels = {"name": name}
@@ -342,7 +343,10 @@ def k8s_create_svc(**kwargs):
                     "targetPort": kwargs["local_port"],
                 }
             ],
-            "selector": {"app": deployment_name},
+            "selector": {
+                "app": deployment_name,
+                "statefulset.kubernetes.io/pod-name": pod_name,
+                },
         },
     }
     return v1.create_namespaced_service(
