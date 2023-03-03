@@ -1,7 +1,8 @@
 import copy
-from typing import Dict
 import json
+import os
 import re
+from typing import Dict
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -26,6 +27,8 @@ class TunnelSerializer(serializers.ModelSerializer):
             "svc_port",
             "target_node",
             "target_port",
+            "tunnel_pod",
+            "jhub_credential",
         ]
 
     def check_input_keys(self, required_keys):
@@ -44,11 +47,13 @@ class TunnelSerializer(serializers.ModelSerializer):
                 self._validated_data = []
                 self._errors = [f"Key labels must be a dict, got {type(labels)}"]
                 raise ValidationError(self._errors)
-            r = r'^[A-Za-z0-9][A-Za-z0-9._\-]*$'
+            r = r"^[A-Za-z0-9][A-Za-z0-9._\-]*$"
             for value in labels.values():
                 if not re.search(r, value):
                     self._validated_data = []
-                    self._errors = [f"Label values must start with an alphanumerical and can only contain the special characters `.`, `-`, and `_`, got {value}"]
+                    self._errors = [
+                        f"Label values must start with an alphanumerical and can only contain the special characters `.`, `-`, and `_`, got {value}"
+                    ]
                     raise ValidationError(self._errors)
 
     def is_valid(self, raise_exception=False):
@@ -82,8 +87,11 @@ class TunnelSerializer(serializers.ModelSerializer):
         return super().is_valid(raise_exception=raise_exception)
 
     def to_internal_value(self, data):
+        jhub_credential = self.context["request"].user.username
         data["local_port"] = get_random_open_local_port()
         data.pop("labels", None)
+        data["tunnel_pod"] = os.environ.get("HOSTNAME", "drf-tunnel-0")
+        data["jhub_credential"] = jhub_credential
         return data
 
     def to_representation(self, instance):

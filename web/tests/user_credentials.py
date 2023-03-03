@@ -31,13 +31,17 @@ class K8sMockedTestCase(APITestCase):
 class UserCredentials(K8sMockedTestCase):
     user_unauthorized_username = "unauthorized"
     user_authorized_username = "authorized"
+    user_authorized_username_2 = "authorized2"
     user_authorized = None
+    user_authorized_2 = None
     user_unauthorized = None
     user_password = "12345"
+    user_password_2 = "12346"
     authorized_group_webservice = "access_to_webservice"
     authorized_group_webservice_restart = "access_to_webservice_restart"
     authorized_group_logs = "access_to_logging"
     credentials_authorized = {}
+    credentials_authorized_2 = {}
     credentials_unauthorized = {}
     header = {
         "Accept": "application/json",
@@ -55,8 +59,14 @@ class UserCredentials(K8sMockedTestCase):
         self.user_authorized = self.create_user(
             self.user_authorized_username, self.user_password
         )
+        self.user_authorized_2 = self.create_user(
+            self.user_authorized_username_2, self.user_password_2
+        )
         self.credentials_authorized = {
             "HTTP_AUTHORIZATION": f"token {self.user_authorized.auth_token.key}"
+        }
+        self.credentials_authorized_2 = {
+            "HTTP_AUTHORIZATION": f"token {self.user_authorized_2.auth_token.key}"
         }
         self.user_unauthorized = self.create_user(
             self.user_unauthorized_username, self.user_password
@@ -70,5 +80,8 @@ class UserCredentials(K8sMockedTestCase):
         self.user_authorized.groups.add(group1)
         self.user_authorized.groups.add(group2)
         self.user_authorized.groups.add(group3)
+        self.user_authorized_2.groups.add(group1)
+        self.user_authorized_2.groups.add(group2)
+        self.user_authorized_2.groups.add(group3)
         self.client.credentials(**self.credentials_authorized)
         return super().setUp()

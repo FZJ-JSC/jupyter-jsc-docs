@@ -76,12 +76,14 @@ class TunnelViewSet(
     GenericViewSet,
 ):
     serializer_class = TunnelSerializer
-    queryset = TunnelModel.objects.all()
-
     lookup_field = "servername"
 
     permission_classes = [HasGroupPermission]
     required_groups = ["access_to_webservice"]
+
+    def get_queryset(self):
+        queryset = TunnelModel.objects.filter(jhub_credential=self.request.user)
+        return queryset
 
     def perform_create(self, serializer):
         data = copy.deepcopy(serializer.validated_data)

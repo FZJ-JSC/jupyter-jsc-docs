@@ -333,6 +333,59 @@ class TunnelViewTests(UserCredentials):
         "tunnel.utils.subprocess.Popen",
         side_effect=mocked_popen_init,
     )
+    def test_retrieve_different_credential(self, mocked_popen_init):
+        url = reverse("tunnel-list")
+        response = self.client.post(
+            url, headers=self.header, data=self.tunnel_data, format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        id = response.headers.get("Location", None)
+        self.assertIsNotNone(id)
+        self.client.credentials(**self.credentials_authorized_2)
+        response_get = self.client.get(
+            url + f"{id}/", headers=self.header, format="json"
+        )
+        self.assertEqual(response_get.status_code, 404)
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_popen_init,
+    )
+    def test_list_different_credential(self, mocked_popen_init):
+        url = reverse("tunnel-list")
+        response = self.client.post(
+            url, headers=self.header, data=self.tunnel_data, format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        id = response.headers.get("Location", None)
+        self.assertIsNotNone(id)
+        self.client.credentials(**self.credentials_authorized_2)
+        response_get = self.client.get(url, headers=self.header, format="json")
+        self.assertEqual(response_get.status_code, 200)
+        self.assertEqual(len(response_get.data), 0)
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_popen_init,
+    )
+    def test_cancel_different_credential(self, mocked_popen_init):
+        url = reverse("tunnel-list")
+        response = self.client.post(
+            url, headers=self.header, data=self.tunnel_data, format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        id = response.headers.get("Location", None)
+        self.assertIsNotNone(id)
+        self.client.credentials(**self.credentials_authorized_2)
+        response_del = self.client.delete(
+            url + f"{id}/", headers=self.header, format="json"
+        )
+        self.assertEqual(response_del.status_code, 404)
+
+    @mock.patch(
+        "tunnel.utils.subprocess.Popen",
+        side_effect=mocked_popen_init,
+    )
     def test_create_servername_already_exists(self, mocked_popen_init):
         url = reverse("tunnel-list")
         response = self.client.post(
