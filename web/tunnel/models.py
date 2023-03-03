@@ -11,6 +11,7 @@ class TunnelModel(models.Model):
     target_port = models.IntegerField(null=False)
     date = models.DateTimeField(auto_now_add=True)
     tunnel_pod = models.TextField(null=False, default="drf-tunnel-0")
+    jhub_credential = models.TextField("jhub_credential", default="jupyterhub")
 
     def __str__(self):
         return f"{self.servername}: {self.svc_name} - ssh [...]@{self.hostname} -L {self.local_port}:{self.target_node}:{self.target_port}"
