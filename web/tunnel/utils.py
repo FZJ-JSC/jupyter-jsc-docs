@@ -1,6 +1,6 @@
 import copy
-import logging
 import json
+import logging
 import os
 import socket
 import subprocess
@@ -186,14 +186,18 @@ def check_tunnel_connection(func):
                     **kwargs,
                 )
             except:
-                log.critical(
-                    "Could not create ssh tunnel.", extra=kwargs, exc_info=True
-                )
-                # That's not ok. We could not connect to the system
-                raise TunnelExceptionError(
-                    f"System not available: Could not connect via ssh to {kwargs['hostname']}",
-                    f"Request identification: {kwargs['uuidcode']}",
-                )
+                log.warning("Could not create ssh tunnel.", extra=kwargs, exc_info=True)
+                if kwargs.get("raise_exception", True):
+                    # That's not ok. We could not connect to the system
+                    raise TunnelExceptionError(
+                        f"System not available: Could not connect via ssh to {kwargs['hostname']}",
+                        f"Request identification: {kwargs['uuidcode']}",
+                    )
+                else:
+                    log.warning(
+                        f"System not available: Could not connect via ssh to {kwargs['hostname']}. Request identification: {kwargs['uuidcode']}",
+                        extra=kwargs,
+                    )
         return func(*args, **kwargs)
 
     return build_up_connection
@@ -346,7 +350,7 @@ def k8s_create_svc(**kwargs):
             "selector": {
                 "app": deployment_name,
                 "statefulset.kubernetes.io/pod-name": pod_name,
-                },
+            },
         },
     }
     return v1.create_namespaced_service(
@@ -430,10 +434,18 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
 def get_custom_headers(request_headers):
     if "headers" in request_headers.keys():
         ret = copy.deepcopy(request_headers["headers"])
+        if "uuidcode" not in ret.keys():
+            ret["uuidcode"] = uuid.uuid4().hex
         return ret
-    custom_header_keys = {"HTTP_UUIDCODE": "uuidcode", "HTTP_HOSTNAME": "hostname", "HTTP_LABELS": "labels"}
+    custom_header_keys = {
+        "HTTP_UUIDCODE": "uuidcode",
+        "HTTP_HOSTNAME": "hostname",
+        "HTTP_LABELS": "labels",
+    }
     ret = {}
     for key, new_key in custom_header_keys.items():
         if key in request_headers.keys():
             ret[new_key] = request_headers[key]
+    if "uuidcode" not in ret.keys():
+        ret["uuidcode"] = uuid.uuid4().hex
     return ret

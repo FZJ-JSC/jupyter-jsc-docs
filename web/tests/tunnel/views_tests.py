@@ -1,3 +1,4 @@
+import copy
 import os
 from unittest import mock
 
@@ -106,10 +107,7 @@ class TunnelViewTests(UserCredentials):
         "-L",
     ]
 
-    header = {
-        "uuidcode": "uuidcode123",
-        "labels": '{"test-key": "test-value"}'
-    }
+    header = {"uuidcode": "uuidcode123", "labels": '{"test-key": "test-value"}'}
 
     @mock.patch(
         "tunnel.utils.subprocess.Popen",
@@ -282,6 +280,36 @@ class TunnelViewTests(UserCredentials):
             mocked_popen_init.call_args_list[3][0][0][:-1],
             self.expected_popen_args_tunnel_cancel,
         )
+
+    def test_cancel_popen_cancel_system_unreachable_fail(self):
+        url = reverse("tunnel-list")
+        self.addMock("tunnel.utils.subprocess.Popen", mocked_popen_init)
+        response = self.client.post(
+            url, headers=self.header, data=self.tunnel_data, format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        id = response.headers.get("Location", None)
+        self.assertIsNotNone(id)
+        self.addMock("tunnel.utils.subprocess.Popen", mocked_popen_init_all_fail)
+        response_del = self.client.delete(
+            url + f"{id}/", headers=self.header, format="json"
+        )
+        self.assertEqual(response_del.status_code, 204)
+
+    def test_cancel_popen_cancel_system_unreachable_no_uuidcode_fail(self):
+        url = reverse("tunnel-list")
+        header = copy.deepcopy(self.header)
+        del header["uuidcode"]
+        self.addMock("tunnel.utils.subprocess.Popen", mocked_popen_init)
+        response = self.client.post(
+            url, headers=header, data=self.tunnel_data, format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        id = response.headers.get("Location", None)
+        self.assertIsNotNone(id)
+        self.addMock("tunnel.utils.subprocess.Popen", mocked_popen_init_all_fail)
+        response_del = self.client.delete(url + f"{id}/", headers=header, format="json")
+        self.assertEqual(response_del.status_code, 204)
 
     @mock.patch(
         "tunnel.utils.subprocess.Popen",
