@@ -34,6 +34,11 @@ su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py makemigrations"
 su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py migrate"
 echo "$(date) Admin password: ${SUPERUSER_PASS}"
 
+if [[ -n ${TUNNEL_USER_PASS} ]]; then
+  export TUNNEL_USERNAME=${TUNNEL_USERNAME:-tunnel}
+  export TUNNEL_AUTHENTICATION_TOKEN=${TUNNEL_AUTHENTICATION_TOKEN:-"Basic $(echo -n "${TUNNEL_USERNAME}:${TUNNEL_USER_PASS}" | base64 -w 0)"}
+fi
+
 if [[ ! -d /home/${USERNAME}/web/static ]]; then
     echo "$(date) Collect static files ..."
     su ${USERNAME} -c "SQL_DATABASE=/dev/null python3 /home/${USERNAME}/web/manage.py collectstatic"

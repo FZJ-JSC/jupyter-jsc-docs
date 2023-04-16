@@ -10,6 +10,7 @@ from tunnel.utils import start_remote_from_config_file
 from tunnel.utils import start_tunnel
 from tunnel.utils import stop_and_delete
 from tunnel.utils import stop_tunnel
+from forwarder.utils.k8s import get_tunnel_sts_pod_names
 
 
 log = logging.getLogger(LOGGER_NAME)
@@ -23,12 +24,12 @@ class TunnelConfig(AppConfig):
     def start_tunnels_in_db(self):
         from .models import TunnelModel
 
+        podname = os.environ.get("HOSTNAME", "drf-tunnel-0")
         uuidcode = "StartUp Tunnel"
-        log.info("Start all tunnels saved in database", extra={"uuidcode": uuidcode})
-        tunnels = TunnelModel.objects.all()
+        log.info("Start all tunnels saved in database", extra={"uuidcode": uuidcode, "pod": podname})
+        tunnels = TunnelModel.objects.filter(tunnel_pod=podname).all()
         for tunnel in tunnels:
             try:
-
                 kwargs = {}
                 for key, value in tunnel.__dict__.items():
                     if key not in ["date", "_state"]:
@@ -95,6 +96,11 @@ class TunnelConfig(AppConfig):
                     user_groups[username] = ["access_to_webservice_restart"]
                 elif username.startswith("remotecheck"):
                     user_groups[username] = ["access_to_webservice_remote_check"]
+                elif username.startswith("tunnel"):
+                    user_groups[username] = [
+                        "access_to_webservice",
+                        "access_to_webservice_restart",
+                    ]
                 else:
                     user_groups[username] = ["access_to_webservice"]
 
@@ -124,7 +130,11 @@ class TunnelConfig(AppConfig):
             except:
                 log.exception("Unexpected error during startup")
             try:
-                start_remote_from_config_file(uuidcode="StartUp")
+                podname = os.environ.get("HOSTNAME", "drf-tunnel-0")
+                tunnel_pods = get_tunnel_sts_pod_names()
+                # Only start remote tunnels on first pod of stateful set
+                if podname == tunnel_pods[0]:
+                    start_remote_from_config_file(uuidcode="StartUp")
             except:
                 log.exception("Unexpected error during startup")
         return super().ready()

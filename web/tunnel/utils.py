@@ -419,7 +419,7 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
     remote_hosts_lines = [
         x[len(remote_prefix) :] for x in config_file if x.startswith(remote_prefix)
     ]
-    kwargs["remote_hosts"] = remote_hosts_lines
+    # kwargs["remote_hosts"] = remote_hosts_lines
     log.debug("Start remote tunnels (hostname={hostname})", extra=kwargs)
     for _hostname in remote_hosts_lines:
         if hostname and hostname != _hostname:

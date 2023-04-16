@@ -1,8 +1,9 @@
 # Create your views here.
 import copy
 import logging
-import uuid
+import os
 
+from django.forms.models import model_to_dict
 from jupyterjsc_tunneling.decorators import request_decorator
 from jupyterjsc_tunneling.permissions import HasGroupPermission
 from jupyterjsc_tunneling.settings import LOGGER_NAME
@@ -18,6 +19,8 @@ from . import utils
 from .models import TunnelModel
 from .serializers import RemoteSerializer
 from .serializers import TunnelSerializer
+from .serializers import TunnelUpdateSerializer
+from .utils import get_random_open_local_port
 
 
 log = logging.getLogger(LOGGER_NAME)
@@ -31,6 +34,7 @@ class RestartViewSet(GenericAPIView):
 
     @request_decorator
     def post(self, request, *args, **kwargs):
+        podname = os.environ.get("HOSTNAME", "drf-tunnel-0")
         hostname = request.data.get("hostname", None)
         if not hostname:
             raise ValidationError("Hostname missing")
@@ -38,7 +42,7 @@ class RestartViewSet(GenericAPIView):
         log.info(
             f"Restart for all tunnels requested for {hostname}", extra=custom_headers
         )
-        tunnels = self.queryset_tunnel.filter(hostname=hostname).all()
+        tunnels = self.queryset_tunnel.filter(hostname=hostname, tunnel_pod=podname).all()
         for tunnel in tunnels:
             kwargs = {}
             for key, value in tunnel.__dict__.items():
@@ -53,7 +57,7 @@ class RestartViewSet(GenericAPIView):
         custom_headers["hostname"] = hostname
         utils.stop_remote(alert_admins=True, raise_exception=False, **custom_headers)
         utils.start_remote(alert_admins=True, raise_exception=False, **custom_headers)
-        return Response(status=200)
+        return Response(status=status.HTTP_200_OK)
 
 
 class RemoteCheckViewSet(GenericAPIView):
@@ -65,7 +69,7 @@ class RemoteCheckViewSet(GenericAPIView):
         utils.start_remote_from_config_file(
             **utils.get_custom_headers(self.request._request.META)
         )
-        return Response(status=200)
+        return Response(status=status.HTTP_200_OK)
 
 
 class TunnelViewSet(
@@ -73,6 +77,7 @@ class TunnelViewSet(
     mixins.RetrieveModelMixin,
     mixins.DestroyModelMixin,
     mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
     GenericViewSet,
 ):
     serializer_class = TunnelSerializer
@@ -82,7 +87,10 @@ class TunnelViewSet(
     required_groups = ["access_to_webservice"]
 
     def get_queryset(self):
-        queryset = TunnelModel.objects.filter(jhub_credential=self.request.user)
+        if self.request.user.username == "tunnel":
+            queryset = TunnelModel.objects.filter()
+        else:
+            queryset = TunnelModel.objects.filter(jhub_credential=self.request.user)
         return queryset
 
     def perform_create(self, serializer):
@@ -138,6 +146,25 @@ class TunnelViewSet(
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
+    @request_decorator
+    def update(self, request, *args, **kwargs):
+        if "start_tunnel" not in request.data:
+            raise ValidationError("Missing key in request data: start_tunnel")
+        start_tunnel = request.data["start_tunnel"]
+        if start_tunnel == "True":
+            data = request.data.copy()
+            data["local_port"] = get_random_open_local_port()
+            utils.start_tunnel(alert_admins=True, raise_exception=True, **data.dict())
+            instance = self.get_object()
+            serializer_class = TunnelUpdateSerializer
+            serializer = serializer_class(instance, data=data, context=self.get_serializer_context())        
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        elif start_tunnel == "False":  # stop tunnel
+            utils.stop_tunnel(alert_admins=True, raise_exception=True, **request.data.dict())
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class RemoteViewSet(GenericAPIView):
     serializer_class = RemoteSerializer
@@ -159,14 +186,14 @@ class RemoteViewSet(GenericAPIView):
         self.perform_create(data)
         # If it wouldn't be running, perform_create would have thrown an exception
         data["running"] = True
-        return Response(data=data, status=200)
+        return Response(data=data, status=status.HTTP_200_OK)
 
     @request_decorator
     def get(self, request, *args, **kwargs):
         custom_headers = utils.get_custom_headers(self.request._request.META)
         serializer = self.get_serializer(data=custom_headers)
         serializer.is_valid(raise_exception=True)
-        return Response(data=serializer.validated_data, status=200)
+        return Response(data=serializer.validated_data, status=status.HTTP_200_OK)
 
     @request_decorator
     def delete(self, request, *args, **kwargs):
