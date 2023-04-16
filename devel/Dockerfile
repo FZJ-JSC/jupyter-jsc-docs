@@ -14,7 +14,9 @@ RUN mkdir -p ${APP_HOME} && \
     mkdir -p ${HOME}/certs && \
     mkdir -p ${HOME}/services/services && \
     mkdir -p ${HOME}/services/job_descriptions && \
-    mkdir -p ${HOME}/userhomes
+    mkdir -p ${HOME}/userhomes && \
+    mkdir -p ${APP_HOME}/.vscode && \
+    mkdir -p ${HOME}/.ssh
 WORKDIR ${APP_HOME}
 
 RUN apt update && \

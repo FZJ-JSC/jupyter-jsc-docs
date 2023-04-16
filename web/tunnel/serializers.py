@@ -4,6 +4,7 @@ import os
 import re
 from typing import Dict
 
+from django.http import QueryDict
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import Serializer
@@ -98,6 +99,32 @@ class TunnelSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         ret["running"] = is_port_in_use(instance.local_port)
         return ret
+    
+
+class TunnelUpdateSerializer(TunnelSerializer):
+    def to_internal_value(self, data):
+        data = data.dict()
+        data["local_port"] = int(data["local_port"])
+        return data
+    
+    def is_valid(self, raise_exception=False):
+        required_keys = [
+            "servername",
+            "hostname",
+            "svc_name",
+            "svc_port",
+            "target_node",
+            "target_port",
+        ]
+        try:
+            self.check_input_keys(required_keys)
+        except ValidationError as exc:
+            _errors = exc.detail
+        else:
+            _errors = {}
+        if _errors and raise_exception:
+            raise ValidationError(_errors)
+        return super(TunnelSerializer, self).is_valid(raise_exception=raise_exception) 
 
 
 class RemoteSerializer(Serializer):
