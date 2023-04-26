@@ -39,8 +39,6 @@ def is_port_in_use(port):
 
 def get_base_cmd(verbose=False):
     base_cmd = [
-        "timeout",
-        os.environ.get("SSHTIMEOUT", "3"),
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -128,8 +126,16 @@ def run_popen_cmd(
     with subprocess.Popen(
         cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid
     ) as p:
-        stdout, stderr = p.communicate()
-        returncode = p.returncode
+        timeout = int(os.environ.get("SSHTIMEOUT", "3"))
+        try:
+            stdout, stderr = p.communicate(timeout=timeout)
+            returncode = p.returncode
+        except subprocess.TimeoutExpired:
+            returncode = 124
+            stdout, stderr = "timeout", ""
+        except Exception as e:
+            returncode = 255
+            stdout, stderr = "unknown error", str(e)
 
     log_extra["stdout"] = stdout.decode("utf-8").strip()
     log_extra["stderr"] = stderr.decode("utf-8").strip()
