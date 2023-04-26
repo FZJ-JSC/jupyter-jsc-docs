@@ -42,7 +42,7 @@ class PopenMocked:
     def __exit__(self, *args, **kwargs):
         pass
 
-    def communicate(self):
+    def communicate(self, timeout=10):
         return ("stdout".encode("utf-8"), "stderr".encode("utf-8"))
 
     @property
@@ -62,7 +62,7 @@ class RestartPopenMocked:
     def __exit__(self, *args, **kwargs):
         pass
 
-    def communicate(self):
+    def communicate(self, timeout=10):
         return ("stdout".encode("utf-8"), "stderr".encode("utf-8"))
 
     @property
@@ -91,7 +91,7 @@ class RemotePopenMocked:
     def __exit__(self, *args, **kwargs):
         pass
 
-    def communicate(self):
+    def communicate(self, timeout=10):
         return ("stdout".encode("utf-8"), "stderr".encode("utf-8"))
 
     @property
@@ -108,9 +108,9 @@ class RemotePopenMocked218(RemotePopenMocked):
 class PopenMockedCheckFail(PopenMocked):
     @property
     def returncode(self):
-        if self.cmd[5:7] == ["-O", "check"]:
+        if self.cmd[3:5] == ["-O", "check"]:
             return 255
-        elif self.cmd[5] == "-v" and self.cmd[6:8] == ["-O", "check"]:
+        elif self.cmd[3] == "-v" and self.cmd[4:6] == ["-O", "check"]:
             return 255
         else:
             return 0
@@ -119,9 +119,9 @@ class PopenMockedCheckFail(PopenMocked):
 class PopenMockedCancelFail(PopenMocked):
     @property
     def returncode(self):
-        if self.cmd[5:7] == ["-O", "cancel"]:
+        if self.cmd[3:5] == ["-O", "cancel"]:
             return 255
-        elif self.cmd[5] == "-v" and self.cmd[6:8] == ["-O", "cancel"]:
+        elif self.cmd[3] == "-v" and self.cmd[4:6] == ["-O", "cancel"]:
             return 255
         else:
             return 0
@@ -130,9 +130,9 @@ class PopenMockedCancelFail(PopenMocked):
 class PopenMockedForwardFail(PopenMocked):
     @property
     def returncode(self):
-        if self.cmd[5:7] == ["-O", "forward"]:
+        if self.cmd[3:5] == ["-O", "forward"]:
             return 255
-        elif self.cmd[5] == "-v" and self.cmd[6:8] == ["-O", "forward"]:
+        elif self.cmd[3] == "-v" and self.cmd[4:6] == ["-O", "forward"]:
             return 255
         else:
             return 0

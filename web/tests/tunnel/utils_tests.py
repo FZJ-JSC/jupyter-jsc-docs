@@ -35,8 +35,6 @@ class TunnelUtilsTests(APITestCase):
         }
         utils.start_tunnel(**kwargs)
         expected_args_1 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -45,8 +43,6 @@ class TunnelUtilsTests(APITestCase):
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_2 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -73,8 +69,6 @@ class TunnelUtilsTests(APITestCase):
         }
         utils.start_tunnel(**kwargs)
         expected_args_1 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -83,16 +77,12 @@ class TunnelUtilsTests(APITestCase):
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_2 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_3 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -146,8 +136,6 @@ class TunnelUtilsTests(APITestCase):
         }
         utils.stop_tunnel(**kwargs)
         expected_args_1 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -156,8 +144,6 @@ class TunnelUtilsTests(APITestCase):
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_2 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -184,8 +170,6 @@ class TunnelUtilsTests(APITestCase):
         }
         utils.stop_tunnel(**kwargs)
         expected_args_1 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -194,16 +178,12 @@ class TunnelUtilsTests(APITestCase):
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_2 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
             f"tunnel_{kwargs['hostname']}",
         ]
         expected_args_3 = [
-            "timeout",
-            "3",
             "ssh",
             "-F",
             os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),

@@ -28,8 +28,6 @@ class TunnelViewTests(UserCredentials):
     }
 
     expected_popen_args_tunnel_check = [
-        "timeout",
-        "3",
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -39,8 +37,6 @@ class TunnelViewTests(UserCredentials):
     ]
 
     expected_popen_args_tunnel_forward = [
-        "timeout",
-        "3",
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -51,8 +47,6 @@ class TunnelViewTests(UserCredentials):
     ]
 
     expected_popen_args_tunnel_forward_v = [
-        "timeout",
-        "3",
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -64,8 +58,6 @@ class TunnelViewTests(UserCredentials):
     ]
 
     expected_popen_args_tunnel_create = [
-        "timeout",
-        "3",
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -73,8 +65,6 @@ class TunnelViewTests(UserCredentials):
     ]
 
     expected_popen_args_tunnel_create_v = [
-        "timeout",
-        "3",
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -83,8 +73,6 @@ class TunnelViewTests(UserCredentials):
     ]
 
     expected_popen_args_tunnel_cancel = [
-        "timeout",
-        "3",
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
@@ -95,8 +83,6 @@ class TunnelViewTests(UserCredentials):
     ]
 
     expected_popen_args_tunnel_cancel_v = [
-        "timeout",
-        "3",
         "ssh",
         "-F",
         os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config"),
