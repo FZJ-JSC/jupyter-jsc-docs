@@ -88,12 +88,12 @@ def get_cmd(prefix, action, verbose=False, **kwargs):
 alert_admins_log = {True: log.critical, False: log.warning}
 action_log = {
     "cancel": log.info,
-    "check": log.debug,
-    "create": log.debug,
+    "check": log.trace,
+    "create": log.trace,
     "forward": log.info,
-    "start": log.debug,
-    "status": log.debug,
-    "stop": log.debug,
+    "start": log.trace,
+    "status": log.trace,
+    "stop": log.trace,
 }
 
 
@@ -110,7 +110,7 @@ def run_popen_cmd(
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
     log_extra = copy.deepcopy(kwargs)
     log_extra["cmd"] = cmd
-    log.debug(
+    action_log[action](
         f"{log_msg} ...",
         extra=log_extra,
     )
@@ -132,7 +132,7 @@ def run_popen_cmd(
             returncode = p.returncode
         except subprocess.TimeoutExpired:
             returncode = 124
-            stdout, stderr = "timeout", ""
+            stdout, stderr = b"timeout", b""
 
     log_extra["stdout"] = stdout.decode("utf-8").strip()
     log_extra["stderr"] = stderr.decode("utf-8").strip()
