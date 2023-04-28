@@ -124,16 +124,15 @@ def run_popen_cmd(
         except:
             pass
 
-    with subprocess.Popen(
-        cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid
-    ) as p:
-        timeout = int(os.environ.get("SSHTIMEOUT", "3"))
-        try:
-            stdout, stderr = p.communicate(timeout=timeout)
-            returncode = p.returncode
-        except subprocess.TimeoutExpired:
-            returncode = 124
-            stdout, stderr = b"timeout", b""
+    timeout = int(os.environ.get("SSHTIMEOUT", "3"))
+    p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid)
+    try:
+        stdout, stderr = p.communicate(timeout=timeout)
+        returncode = p.returncode
+    except subprocess.TimeoutExpired:
+        p.kill()
+        returncode = 124
+        stdout, stderr = b"timeout", b""
 
     log_extra["stdout"] = stdout.decode("utf-8").strip()
     log_extra["stderr"] = stderr.decode("utf-8").strip()
@@ -154,6 +153,7 @@ def run_popen_cmd(
                 max_attempts=max_attempts - 1,
                 verbose=max_attempts == 2,
                 expected_returncodes=expected_returncodes,
+                exc_info=exc_info,
                 **kwargs,
             )
         if not action == "check":
