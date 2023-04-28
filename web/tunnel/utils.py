@@ -106,6 +106,7 @@ def run_popen_cmd(
     verbose=False,
     expected_returncodes=[0],
     exc_info=True,
+    timeout=None,
     **kwargs,
 ):
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
@@ -124,7 +125,8 @@ def run_popen_cmd(
         except:
             pass
 
-    timeout = int(os.environ.get("SSHTIMEOUT", "3"))
+    if not timeout:
+        timeout = int(os.environ.get("SSHTIMEOUT", "3"))
     p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid)
     try:
         stdout, stderr = p.communicate(timeout=timeout)
@@ -135,7 +137,8 @@ def run_popen_cmd(
         stdout, stderr = b"timeout", b""
 
     log_extra["stdout"] = stdout.decode("utf-8").strip()
-    log_extra["stderr"] = stderr.decode("utf-8").strip()
+    if exc_info:
+        log_extra["stderr"] = stderr.decode("utf-8").strip()
     log_extra["returncode"] = returncode
 
     action_log[action](
@@ -154,6 +157,7 @@ def run_popen_cmd(
                 verbose=max_attempts == 2,
                 expected_returncodes=expected_returncodes,
                 exc_info=exc_info,
+                timeout=timeout,
                 **kwargs,
             )
         if not action == "check":
@@ -255,7 +259,7 @@ def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
             )
 
 
-def start_remote(alert_admins=True, raise_exception=True, exc_info=True, **validated_data):
+def start_remote(alert_admins=True, raise_exception=True, exc_info=True, timeout=None, **validated_data):
     try:
         run_popen_cmd(
             "remote",
@@ -265,6 +269,7 @@ def start_remote(alert_admins=True, raise_exception=True, exc_info=True, **valid
             max_attempts=3,
             expected_returncodes=[217],
             exc_info=exc_info,
+            timeout=timeout,
             **validated_data,
         )
     except Exception as e:
@@ -431,8 +436,8 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
             continue
         kwargs["hostname"] = _hostname
         try:
-            log.debug(f"Start remote tunnel from config file (hostname={_hostname})", extra=kwargs)
-            start_remote(alert_admins=False, exc_info=False, **kwargs)
+            log.debug(f"Start remote tunnel from config file (hostname={_hostname}) with timeout=1", extra=kwargs)
+            start_remote(alert_admins=False, exc_info=False, timeout=1, **kwargs)
         except:
             log.warning(f"Could not start ssh remote tunnel (hostname={_hostname})", extra=kwargs)
 
