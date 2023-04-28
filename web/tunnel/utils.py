@@ -105,6 +105,7 @@ def run_popen_cmd(
     max_attempts=1,
     verbose=False,
     expected_returncodes=[0],
+    exc_info=True,
     **kwargs,
 ):
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
@@ -160,6 +161,7 @@ def run_popen_cmd(
             alert_admins_log[alert_admins](
                 f"{log_msg} failed. Action may be required",
                 extra=log_extra,
+                exc_info=exc_info
             )
         raise Exception(
             f"unexpected returncode: {returncode} not in {expected_returncodes}"
@@ -253,7 +255,7 @@ def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
             )
 
 
-def start_remote(alert_admins=True, raise_exception=True, **validated_data):
+def start_remote(alert_admins=True, raise_exception=True, exc_info=True, **validated_data):
     try:
         run_popen_cmd(
             "remote",
@@ -262,11 +264,12 @@ def start_remote(alert_admins=True, raise_exception=True, **validated_data):
             alert_admins=True,
             max_attempts=3,
             expected_returncodes=[217],
+            exc_info=exc_info,
             **validated_data,
         )
     except Exception as e:
         alert_admins_log[alert_admins](
-            "Could not start remote ssh tunnel", extra=validated_data, exc_info=True
+            "Could not start remote ssh tunnel", extra=validated_data, exc_info=exc_info
         )
         if raise_exception:
             raise TunnelExceptionError("Could not start remote ssh tunnel", str(e))
@@ -423,15 +426,15 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
         x[len(remote_prefix) :] for x in config_file if x.startswith(remote_prefix)
     ]
     # kwargs["remote_hosts"] = remote_hosts_lines
-    log.debug("Start remote tunnels (hostname={hostname})", extra=kwargs)
     for _hostname in remote_hosts_lines:
         if hostname and hostname != _hostname:
             continue
         kwargs["hostname"] = _hostname
         try:
-            start_remote(**kwargs)
+            log.debug(f"Start remote tunnel from config file (hostname={_hostname})", extra=kwargs)
+            start_remote(alert_admins=False, exc_info=False, **kwargs)
         except:
-            log.exception("Could not start ssh remote tunnel", extra=kwargs)
+            log.warning(f"Could not start ssh remote tunnel (hostname={_hostname})", extra=kwargs)
 
 
 def get_custom_headers(request_headers):

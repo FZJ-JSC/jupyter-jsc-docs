@@ -128,13 +128,18 @@ class TunnelConfig(AppConfig):
             try:
                 self.start_tunnels_in_db()
             except:
-                log.exception("Unexpected error during startup")
+                log.exception("Unexpected error during startup", extra={"uuidcode": "StartUp"})
             try:
                 podname = os.environ.get("HOSTNAME", "drf-tunnel-0")
+                log.info("Get tunnel sts pod name", extra={"uuidcode": "StartUp"})
                 tunnel_pods = get_tunnel_sts_pod_names()
+                log.info(f"Get tunnel sts pod name: {tunnel_pods}", extra={"uuidcode": "StartUp"})
                 # Only start remote tunnels on first pod of stateful set
                 if podname == tunnel_pods[0]:
+                    log.info("Start remote tunnels from config file on drf-tunnel-0", extra={"uuidcode": "StartUp"})
                     start_remote_from_config_file(uuidcode="StartUp")
+                    log.info("Start remote tunnels from config file on drf-tunnel-0 finished", extra={"uuidcode": "StartUp"})
             except:
-                log.exception("Unexpected error during startup")
+                log.exception("Unexpected error during startup", extra={"uuidcode": "StartUp"})
+        log.info("Ready function finished. Start webservice.", extra={"uuidcode": "StartUp"})
         return super().ready()
