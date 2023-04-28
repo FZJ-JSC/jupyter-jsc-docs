@@ -105,6 +105,8 @@ def run_popen_cmd(
     max_attempts=1,
     verbose=False,
     expected_returncodes=[0],
+    exc_info=True,
+    timeout=None,
     **kwargs,
 ):
     cmd = get_cmd(prefix, action, verbose=verbose, **kwargs)
@@ -123,19 +125,20 @@ def run_popen_cmd(
         except:
             pass
 
-    with subprocess.Popen(
-        cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid
-    ) as p:
+    if not timeout:
         timeout = int(os.environ.get("SSHTIMEOUT", "3"))
-        try:
-            stdout, stderr = p.communicate(timeout=timeout)
-            returncode = p.returncode
-        except subprocess.TimeoutExpired:
-            returncode = 124
-            stdout, stderr = b"timeout", b""
+    p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid)
+    try:
+        stdout, stderr = p.communicate(timeout=timeout)
+        returncode = p.returncode
+    except subprocess.TimeoutExpired:
+        p.kill()
+        returncode = 124
+        stdout, stderr = b"timeout", b""
 
     log_extra["stdout"] = stdout.decode("utf-8").strip()
-    log_extra["stderr"] = stderr.decode("utf-8").strip()
+    if exc_info:
+        log_extra["stderr"] = stderr.decode("utf-8").strip()
     log_extra["returncode"] = returncode
 
     action_log[action](
@@ -153,6 +156,8 @@ def run_popen_cmd(
                 max_attempts=max_attempts - 1,
                 verbose=max_attempts == 2,
                 expected_returncodes=expected_returncodes,
+                exc_info=exc_info,
+                timeout=timeout,
                 **kwargs,
             )
         if not action == "check":
@@ -160,6 +165,7 @@ def run_popen_cmd(
             alert_admins_log[alert_admins](
                 f"{log_msg} failed. Action may be required",
                 extra=log_extra,
+                exc_info=exc_info
             )
         raise Exception(
             f"unexpected returncode: {returncode} not in {expected_returncodes}"
@@ -253,7 +259,7 @@ def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
             )
 
 
-def start_remote(alert_admins=True, raise_exception=True, **validated_data):
+def start_remote(alert_admins=True, raise_exception=True, exc_info=True, timeout=None, **validated_data):
     try:
         run_popen_cmd(
             "remote",
@@ -262,11 +268,13 @@ def start_remote(alert_admins=True, raise_exception=True, **validated_data):
             alert_admins=True,
             max_attempts=3,
             expected_returncodes=[217],
+            exc_info=exc_info,
+            timeout=timeout,
             **validated_data,
         )
     except Exception as e:
         alert_admins_log[alert_admins](
-            "Could not start remote ssh tunnel", extra=validated_data, exc_info=True
+            "Could not start remote ssh tunnel", extra=validated_data, exc_info=exc_info
         )
         if raise_exception:
             raise TunnelExceptionError("Could not start remote ssh tunnel", str(e))
@@ -423,15 +431,15 @@ def start_remote_from_config_file(uuidcode="", hostname=""):
         x[len(remote_prefix) :] for x in config_file if x.startswith(remote_prefix)
     ]
     # kwargs["remote_hosts"] = remote_hosts_lines
-    log.debug("Start remote tunnels (hostname={hostname})", extra=kwargs)
     for _hostname in remote_hosts_lines:
         if hostname and hostname != _hostname:
             continue
         kwargs["hostname"] = _hostname
         try:
-            start_remote(**kwargs)
+            log.debug(f"Start remote tunnel from config file (hostname={_hostname}) with timeout=1", extra=kwargs)
+            start_remote(alert_admins=False, exc_info=False, timeout=1, **kwargs)
         except:
-            log.exception("Could not start ssh remote tunnel", extra=kwargs)
+            log.warning(f"Could not start ssh remote tunnel (hostname={_hostname})", extra=kwargs)
 
 
 def get_custom_headers(request_headers):
