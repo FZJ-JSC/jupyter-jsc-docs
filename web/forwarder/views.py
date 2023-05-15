@@ -38,7 +38,7 @@ class RestartForwarderViewSet(GenericAPIView):
             try:
                 r = requests.post(
                     url, 
-                    data=request.data.dict(), 
+                    data=request.data,
                     headers=request_properties["headers"],
                     verify=request_properties["ca"]
                 )
@@ -48,13 +48,13 @@ class RestartForwarderViewSet(GenericAPIView):
                     details = r.json()
                     _errors[pod] = details
                     log.info(f"Could not restart tunnels on {pod}", extra={
-                        **request.data.dict(), 
+                        **request.data, 
                         **{ "error": details }
                     })
                 except JSONDecodeError:
                     details = {"detail": "Request response could not be serialized"}
                     log.info(f"Could not restart tunnels on {pod}", extra={
-                        **request.data.dict(), 
+                        **request.data, 
                         **{ 
                             "request_url": r.url,
                             "status_code": r.status_code,
@@ -65,7 +65,7 @@ class RestartForwarderViewSet(GenericAPIView):
             except Exception as e:
                 _errors[pod] = str(e)
                 log.info(f"Could not restart tunnels on {pod}", extra={
-                    **request.data.dict(), 
+                    **request.data, 
                     **{ "error": str(e) }
                 })
         if _errors:
