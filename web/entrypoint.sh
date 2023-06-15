@@ -9,14 +9,6 @@ fi
 export SSHD_LOG_PATH=${SSHD_LOG_PATH:-/home/${USERNAME}/sshd.log}
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
-if [[ -d /tmp/${USERNAME}_ssh ]]; then
-    mkdir -p /home/${USERNAME}/.ssh
-    cp -rp /tmp/${USERNAME}_ssh/* /home/${USERNAME}/.ssh/.
-    chmod -R 400 /home/${USERNAME}/.ssh/*
-    chown -R ${USERNAME}:users /home/${USERNAME}/.ssh
-fi
-
-
 # Set secret key
 export SECRET_KEY=${SECRET_KEY:-$(uuidgen)}
 
@@ -32,7 +24,6 @@ fi
 export SUPERUSER_PASS=${SUPERUSER_PASS:-$(uuidgen)}
 su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py makemigrations"
 su ${USERNAME} -c "python3 /home/${USERNAME}/web/manage.py migrate"
-echo "$(date) Admin password: ${SUPERUSER_PASS}"
 
 if [[ -n ${TUNNEL_USER_PASS} ]]; then
   export TUNNEL_USERNAME=${TUNNEL_USERNAME:-tunnel}

@@ -6,10 +6,6 @@ stages:
 
 workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH == "devel"
-      variables:
-        RUN_UNIT_TESTS: "True"
-        RUN_BUILD_DEVEL: "True"
     - if: $CI_COMMIT_BRANCH != "main"
       variables:
         RUN_UNIT_TESTS: "True"
