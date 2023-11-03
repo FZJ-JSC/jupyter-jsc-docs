@@ -21,7 +21,7 @@ workflow:
 unittests:
   stage: unittest
   image:
-    name: python:alpine3.14
+    name: python:alpine3.18
   before_script:
     - pip3 install -U pip && pip3 install -r ${CI_PROJECT_DIR}/devel/requirements_build.txt
   script:
