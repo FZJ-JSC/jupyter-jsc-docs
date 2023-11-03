@@ -39,7 +39,6 @@ class UserCredentials(K8sMockedTestCase):
     user_password_2 = "12346"
     authorized_group_webservice = "access_to_webservice"
     authorized_group_webservice_restart = "access_to_webservice_restart"
-    authorized_group_logs = "access_to_logging"
     credentials_authorized = {}
     credentials_authorized_2 = {}
     credentials_unauthorized = {}
@@ -75,13 +74,10 @@ class UserCredentials(K8sMockedTestCase):
             "HTTP_AUTHORIZATION": f"token {self.user_unauthorized.auth_token.key}"
         }
         group1 = Group.objects.create(name=self.authorized_group_webservice)
-        group2 = Group.objects.create(name=self.authorized_group_logs)
         group3 = Group.objects.create(name=self.authorized_group_webservice_restart)
         self.user_authorized.groups.add(group1)
-        self.user_authorized.groups.add(group2)
         self.user_authorized.groups.add(group3)
         self.user_authorized_2.groups.add(group1)
-        self.user_authorized_2.groups.add(group2)
         self.user_authorized_2.groups.add(group3)
         self.client.credentials(**self.credentials_authorized)
         return super().setUp()

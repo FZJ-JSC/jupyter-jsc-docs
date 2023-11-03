@@ -29,9 +29,8 @@ urlpatterns = [
     path("api/remotecheck/", RemoteCheckViewSet.as_view(), name="remotecheck"),
     path("api/restart/", RestartViewSet.as_view(), name="restart"),
     path("api/health/", lambda r: HttpResponse()),
-    path("api/logs/", include("logs.urls")),
     path("api-auth/", include("rest_framework.urls")),
-    path("api/forwarder/", include("forwarder.urls"))
+    path("api/forwarder/", include("forwarder.urls")),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

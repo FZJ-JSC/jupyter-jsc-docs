@@ -25,7 +25,6 @@ unittests:
   before_script:
     - pip3 install -U pip && pip3 install -r ${CI_PROJECT_DIR}/devel/requirements_build.txt
   script:
-    - cd ${CI_PROJECT_DIR} && pytest -c ${CI_PROJECT_DIR}/web/tests/logs/pytest.ini
     - cd ${CI_PROJECT_DIR} && pytest -c ${CI_PROJECT_DIR}/web/tests/tunnel/pytest.ini
   rules:
     - if: $RUN_UNIT_TESTS == "True"
@@ -38,7 +37,6 @@ build:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
-    - sed -i -e "s/<VERSION>/${CI_COMMIT_TAG} (${CI_COMMIT_SHORT_SHA})/g" ${CI_PROJECT_DIR}/web/logs/apps.py
     - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG} --destination ${CI_REGISTRY_IMAGE}:${LATEST_TAG}
   rules:
     - if: $BUILD_COMMIT_SHORT == "True"
@@ -51,7 +49,6 @@ build-devel:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
-    - sed -i -e "s/<VERSION>/${CI_COMMIT_TAG} (${CI_COMMIT_SHORT_SHA})/g" ${CI_PROJECT_DIR}/web/logs/apps.py
     - /kaniko/executor --context ${CI_PROJECT_DIR} --dockerfile ${CI_PROJECT_DIR}/devel/Dockerfile --cache=true --cache-copy-layers=true --destination ${CI_REGISTRY_IMAGE}:devel
   rules:
     - if: $RUN_BUILD_DEVEL == "True"
@@ -64,7 +61,6 @@ build-tag:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
-    - sed -i -e "s/<VERSION>/${CI_COMMIT_TAG} (${CI_COMMIT_SHORT_SHA})/g" ${CI_PROJECT_DIR}/web/logs/apps.py
     - /kaniko/executor --context $CI_PROJECT_DIR --destination ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG} --destination ${CI_REGISTRY_IMAGE}:latest
   rules:
     - if: $CI_COMMIT_TAG

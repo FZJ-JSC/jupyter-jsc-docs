@@ -1,3 +1,0 @@
-# DemoSite
-restrict,port-forwarding,command="/bin/echo No commands allowed" <LJUPYTER_PUBLIC_KEY>
-<DEVEL_PUBLIC_KEY>

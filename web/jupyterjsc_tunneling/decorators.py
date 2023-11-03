@@ -1,53 +1,41 @@
-import copy
 import logging
-from datetime import datetime
-from datetime import timedelta
+import os
 
-from logs.utils import create_logging_handler
-from logs.utils import remove_logging_handler
+import yaml
 from rest_framework.response import Response
 
+from .logs import update_extra_handlers
 from .settings import LOGGER_NAME
-
 
 log = logging.getLogger(LOGGER_NAME)
 assert log.__class__.__name__ == "ExtraLoggerClass"
 
 """
-We have to run this function at every request. If we're running 
-multiple pods in a kubernetes cluster only one pod receives a logging
-update. But this pod will change the database entries. So we check
-on every request, if our current logging setup (in this specific pod) is
-equal to the database.
-
-Any hook / trigger at database updates would only be called on one pod.
-Since logging is thread-safe, we cannot run an extra thread to update
-handlers.
+Check logging config update at each request.
 """
-current_logger_configuration_mem = {}
+_logging_config_cache = {}
+_logging_config_last_update = 0
+_logging_config_file = os.environ.get("LOGGING_CONFIG_PATH")
 
 
 def request_decorator(func):
     def update_logging_handler(*args, **kwargs):
-        global current_logger_configuration_mem
-        from logs.models import HandlerModel
+        global _logging_config_cache
+        global _logging_config_last_update
 
-        logger = logging.getLogger(LOGGER_NAME)
-        assert logger.__class__.__name__ == "ExtraLoggerClass"
-        active_handler = HandlerModel.objects.all()
-        active_handler_dict = {x.handler: x.configuration for x in active_handler}
-        if active_handler_dict != current_logger_configuration_mem:
-            logger_handlers = logger.handlers
-            logger.handlers = [
-                handler
-                for handler in logger_handlers
-                if handler.name in active_handler_dict.keys()
-            ]
-            for name, configuration in active_handler_dict.items():
-                if configuration != current_logger_configuration_mem.get(name, {}):
-                    remove_logging_handler(name)
-                    create_logging_handler(name, **configuration)
-            current_logger_configuration_mem = copy.deepcopy(active_handler_dict)
+        # Only update logging_config, if it has changed on disk
+        try:
+            last_change = os.path.getmtime(_logging_config_file)
+            if last_change > _logging_config_last_update:
+                log.debug("Load logging config file.")
+                with open(_logging_config_file, "r") as f:
+                    ret = yaml.full_load(f)
+                _logging_config_last_update = last_change
+                _logging_config_cache = ret
+                log.debug("Update Logger")
+                update_extra_handlers(_logging_config_cache)
+        except:
+            log.exception("Could not load logging config file")
         return func(*args, **kwargs)
 
     def catch_all_exceptions(*args, **kwargs):

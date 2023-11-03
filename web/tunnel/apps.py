@@ -2,6 +2,45 @@ import copy
 import logging
 import os
 
+# We might want to log forbidden extra keywords like "filename".
+# Instead of raising an exception, we just alter the keyword
+class ExtraLoggerClass(logging.Logger):
+    def trace(self, message, *args, **kws):
+        if self.isEnabledFor(5):
+            # Yes, logger takes its '*args' as 'args'.
+            self._log(5, message, args, **kws)
+
+    def makeRecord(
+        self,
+        name,
+        level,
+        fn,
+        lno,
+        msg,
+        args,
+        exc_info,
+        func=None,
+        extra=None,
+        sinfo=None,
+    ):
+        """
+        A factory method which can be overridden in subclasses to create
+        specialized LogRecords.
+        """
+        rv = logging._logRecordFactory(
+            name, level, fn, lno, msg, args, exc_info, func, sinfo
+        )
+        if extra is not None:
+            for key in extra:
+                if (key in ["message", "asctime"]) or (key in rv.__dict__):
+                    rv.__dict__[f"{key}_extra"] = extra[key]
+                else:
+                    rv.__dict__[key] = extra[key]
+        return rv
+
+
+logging.setLoggerClass(ExtraLoggerClass)
+
 from django.apps import AppConfig
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 from tunnel.utils import k8s_svc
@@ -11,7 +50,6 @@ from tunnel.utils import start_tunnel
 from tunnel.utils import stop_and_delete
 from tunnel.utils import stop_tunnel
 from forwarder.utils.k8s import get_tunnel_sts_pod_names
-
 
 log = logging.getLogger(LOGGER_NAME)
 assert log.__class__.__name__ == "ExtraLoggerClass"
@@ -26,7 +64,10 @@ class TunnelConfig(AppConfig):
 
         podname = os.environ.get("HOSTNAME", "drf-tunnel-0")
         uuidcode = "StartUp Tunnel"
-        log.info("Start all tunnels saved in database", extra={"uuidcode": uuidcode, "pod": podname})
+        log.info(
+            "Start all tunnels saved in database",
+            extra={"uuidcode": uuidcode, "pod": podname},
+        )
         tunnels = TunnelModel.objects.filter(tunnel_pod=podname).all()
         for tunnel in tunnels:
             try:
@@ -69,77 +110,72 @@ class TunnelConfig(AppConfig):
             _group = Group.objects.filter(name=group).first()
             user.groups.add(_group)
 
-    def setup_logger(self):
-        from logs.models import HandlerModel
-
-        data = {
-            "handler": "stream",
-            "configuration": {
-                "level": 10,
-                "formatter": "simple",
-                "stream": "ext://sys.stdout",
-            },
-        }
-        HandlerModel(**data).save()
-
     def setup_db(self):
-        user_groups = {}
-        for key in os.environ.keys():
-            if key.endswith("_USER_PASS"):
-                username = key[: -len("_USER_PASS")].lower()
-                if username == "jupyterhub":
-                    user_groups[username] = [
-                        "access_to_webservice",
-                        "access_to_logging",
-                    ]
-                elif username.startswith("k8smgr"):
-                    user_groups[username] = ["access_to_webservice_restart"]
-                elif username.startswith("remotecheck"):
-                    user_groups[username] = ["access_to_webservice_remote_check"]
-                elif username.startswith("tunnel"):
-                    user_groups[username] = [
-                        "access_to_webservice",
-                        "access_to_webservice_restart",
-                    ]
-                else:
-                    user_groups[username] = ["access_to_webservice"]
-
         superuser_name = "admin"
         superuser_mail = os.environ.get("SUPERUSER_MAIL", "admin@example.com")
         superuser_pass = os.environ["SUPERUSER_PASS"]
         self.create_user(
             superuser_name, superuser_pass, superuser=True, mail=superuser_mail
         )
-
-        for username, groups in user_groups.items():
-            userpass = os.environ.get(f"{username.upper()}_USER_PASS", None)
-            if userpass:
-                self.create_user(username, userpass, groups=groups)
-            else:
-                log.info(
-                    f"Do not create user {username} - password is missing",
-                    extra={"uuidcode": "StartUp"},
-                )
+        _users = {}
+        usernames_via_env = [x for x in os.environ.get("usernames", "").split(";") if x]
+        passwords_via_env = [x for x in os.environ.get("passwords", "").split(";") if x]
+        groups_via_env = [
+            [y for y in x.split(":") if y]
+            for x in os.environ.get("groups", "").split(";")
+        ]
+        if usernames_via_env and passwords_via_env:
+            for i in range(len(usernames_via_env)):
+                if i >= len(passwords_via_env):
+                    log.warning(
+                        f"No password available for {usernames_via_env[i]}. User not created."
+                    )
+                else:
+                    groups = []
+                    try:
+                        groups = groups_via_env[i]
+                    except:
+                        log.warning(
+                            f"No groups available for {usernames_via_env[i]}. Use default groups [access_to_webservice]"
+                        )
+                        groups = ["access_to_webservice"]
+                    self.create_user(
+                        usernames_via_env[i], passwords_via_env[i], groups=groups
+                    )
 
     def ready(self):
         if os.environ.get("GUNICORN_START", "false").lower() == "true":
-            self.setup_logger()
             self.setup_db()
             try:
                 self.start_tunnels_in_db()
             except:
-                log.exception("Unexpected error during startup", extra={"uuidcode": "StartUp"})
+                log.exception(
+                    "Unexpected error during startup", extra={"uuidcode": "StartUp"}
+                )
             try:
                 podname = os.environ.get("HOSTNAME", "drf-tunnel-0")
                 log.info("Get tunnel sts pod name", extra={"uuidcode": "StartUp"})
                 tunnel_pods = get_tunnel_sts_pod_names()
-                log.info(f"Get tunnel sts pod name: {tunnel_pods}", extra={"uuidcode": "StartUp"})
+                log.info(
+                    f"Get tunnel sts pod name: {tunnel_pods}",
+                    extra={"uuidcode": "StartUp"},
+                )
                 # Only start remote tunnels on first pod of stateful set
                 if podname == tunnel_pods[0]:
-                    log.info("Start remote tunnels from config file on drf-tunnel-0", extra={"uuidcode": "StartUp"})
+                    log.info(
+                        "Start remote tunnels from config file on drf-tunnel-0",
+                        extra={"uuidcode": "StartUp"},
+                    )
                     start_remote_from_config_file(uuidcode="StartUp")
-                    log.info("Start remote tunnels from config file on drf-tunnel-0 finished", extra={"uuidcode": "StartUp"})
+                    log.info(
+                        "Start remote tunnels from config file on drf-tunnel-0 finished",
+                        extra={"uuidcode": "StartUp"},
+                    )
             except:
-                log.exception("Unexpected error during startup", extra={"uuidcode": "StartUp"})
-        log.info("Ready function finished. Start webservice.", extra={"uuidcode": "StartUp"})
+                log.exception(
+                    "Unexpected error during startup", extra={"uuidcode": "StartUp"}
+                )
+        log.info(
+            "Ready function finished. Start webservice.", extra={"uuidcode": "StartUp"}
+        )
         return super().ready()
