@@ -2,11 +2,12 @@
 
 USERNAME=${USERNAME}
 
+export SSHD_LOG_PATH=${SSHD_LOG_PATH:-/home/${USERNAME}/sshd.log}
 # Start sshd service
 if [[ -n $AUTHORIZED_KEYS_PATH ]]; then
-    sed -i -e "s@.ssh/authorized_keys@${AUTHORIZED_KEYS_PATH}@g" /etc/ssh/sshd_config
+    echo "Copy ${AUTHORIZED_KEYS_PATH} to .ssh/authorized_keys every 60 seconds"
+    while true; do cmp -s ${AUTHORIZED_KEYS_PATH} /home/${USERNAME}/.ssh/authorized_keys ; if [[ ! $? -eq 0 ]]; then echo "$(date) - Update authorized_keys" >> ${SSHD_LOG_PATH} ; cat ${AUTHORIZED_KEYS_PATH} > /home/${USERNAME}/.ssh/authorized_keys ; fi; sleep 60; done &
 fi
-export SSHD_LOG_PATH=${SSHD_LOG_PATH:-/home/${USERNAME}/sshd.log}
 /usr/sbin/sshd -f /etc/ssh/sshd_config -E ${SSHD_LOG_PATH}
 
 # Set secret key

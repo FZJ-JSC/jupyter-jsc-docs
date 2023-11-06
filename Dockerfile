@@ -9,7 +9,11 @@ RUN adduser --uid 1000 --ingroup users --gecos "" --disabled-password ${USERNAME
 ENV HOME=/home/${USERNAME}
 ENV APP_HOME=/home/${USERNAME}/web
 RUN mkdir -p ${APP_HOME} && \
-    mkdir -p ${HOME}/certs
+    mkdir -p ${HOME}/certs && \
+    mkdir -p ${HOME}/.ssh && \
+    chmod 700 ${HOME}/.ssh && \
+    touch ${HOME}/.ssh/authorized_keys && \
+    chmod 600 ${HOME}/.ssh/authorized_keys
 WORKDIR ${APP_HOME}
 
 RUN apk update && \
