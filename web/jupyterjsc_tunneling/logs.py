@@ -136,8 +136,15 @@ def update_extra_handlers(logging_config):
                 elif configuration["socktype"] == "ext://socket.SOCK_DGRAM":
                     configuration["socktype"] = socket.SOCK_DGRAM
 
+            _ = configuration.pop("enabled")
             formatter_name = configuration.pop("formatter")
             level = get_level(configuration.pop("level"))
+            none_keys = []
+            for key, value in configuration.items():
+                if value is None:
+                    none_keys.append(key)
+            for x in none_keys:
+                _ = configuration.pop(x)
 
             # Create handler, formatter, and add it
             handler = supported_handler_classes[handler_name](**configuration)
