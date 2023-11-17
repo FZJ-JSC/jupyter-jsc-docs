@@ -134,8 +134,11 @@ keepalive = 2
 #
 
 daemon = False
+request_port = int(os.environ.get("REQUEST_PORT", 443))
 raw_env = [
     "GUNICORN_START=true",
+    "REQUEST_PROTOCOL=https",
+    f"REQUEST_PORT={request_port}",
 ]
 pidfile = "/home/tunnel/gunicorn.pid"
 umask = 0

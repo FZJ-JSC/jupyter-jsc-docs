@@ -97,7 +97,7 @@ class TunnelForwarderViewSet(GenericAPIView):
             redirect_url = get_responsible_pod_url(instance, suffix=instance.servername)
         else:
             redirect_url = get_service_url()
-        log.debug(f"Redirecting tunnel POST request to {redirect_url}")
+        log.debug(f"Redirecting tunnel GET request to {redirect_url}")
         return Response(
             status=status.HTTP_307_TEMPORARY_REDIRECT,
             headers={"Location": redirect_url},
@@ -179,7 +179,7 @@ class TunnelForwarderViewSet(GenericAPIView):
     def delete(self, request, *args, **kwargs):
         instance = self.get_object()
         redirect_url = get_responsible_pod_url(instance, suffix=instance.servername)
-        log.debug(f"Redirecting tunnel POST request to {redirect_url}")
+        log.debug(f"Redirecting tunnel DELETE request to {redirect_url}")
         return Response(
             status=status.HTTP_307_TEMPORARY_REDIRECT,
             headers={"Location": redirect_url},
