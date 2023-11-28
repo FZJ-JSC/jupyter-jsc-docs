@@ -116,7 +116,7 @@ def update_extra_handlers(logging_config):
     handler_names = [x.name for x in logger_handlers]
 
     for handler_name, handler_config in logging_config.items():
-        if handler_config.get("enabled", False) and handler_name in handler_names:
+        if (not handler_config.get("enabled", False)) and handler_name in handler_names:
             # Handler was disabled, remove it
             logger.handlers = [x for x in logger_handlers if x.name != handler_name]
             logger.debug(f"Logging handler removed ({handler_name})")
