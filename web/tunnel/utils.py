@@ -466,6 +466,9 @@ def check_running_services():
     jhub_cleanup_urls = os.environ.get("JUPYTERHUB_CLEANUP_URLS", "")
     jhub_cleanup_tokens = os.environ.get("JUPYTERHUB_CLEANUP_TOKENS", "")
     if jhub_cleanup_names and jhub_cleanup_urls and jhub_cleanup_tokens:
+        log.info(
+            f"PeriodicCheck - Env variables are all set. Start check every 30 seconds for {jhub_cleanup_names}."
+        )
         while True:
             jhub_cleanup_names = jhub_cleanup_names.split(";")
             jhub_cleanup_urls_list = jhub_cleanup_urls.split(";")
@@ -474,6 +477,7 @@ def check_running_services():
             i = 0
             for jhub_cleanup_name in jhub_cleanup_names:
                 # call request, check if it's running
+                log.debug(f"PeriodicCheck - Call list servers {jhub_cleanup_name}.")
                 try:
                     r = requests.get(
                         jhub_cleanup_urls_list[i],
@@ -484,14 +488,19 @@ def check_running_services():
                     )
                     r.raise_for_status()
                     running_services_in_jhub[jhub_cleanup_name] = r.json()
+                    log.debug(f"PeriodicCheck - {jhub_cleanup_name} result: {r.json()}")
                 except:
                     log.exception("PeriodicCheck - Could not check running services")
                 finally:
                     i += 1
 
             all_tunnels = TunnelModel.objects.all()
+            log.debug(f"PeriodicCheck - Check for all tunnels: {all_tunnels}")
             for tunnel in all_tunnels:
                 if tunnel.jhub_credential in running_services_in_jhub.keys():
+                    log.debug(
+                        f"PeriodicCheck - Tunnel jhub credential ( {tunnel.jhub_credential} ) is in list, check it"
+                    )
                     if (
                         f"{tunnel.jhub_userid}_{tunnel.servername}"
                         not in running_services_in_jhub[tunnel.jhub_credential]
