@@ -29,6 +29,7 @@ class TunnelSerializer(serializers.ModelSerializer):
             "target_node",
             "target_port",
             "tunnel_pod",
+            "jhub_userid",
             "jhub_credential",
         ]
 
@@ -65,6 +66,7 @@ class TunnelSerializer(serializers.ModelSerializer):
             "svc_port",
             "target_node",
             "target_port",
+            "jhub_userid",
         ]
         try:
             self.check_input_keys(required_keys)
@@ -99,14 +101,14 @@ class TunnelSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         ret["running"] = is_port_in_use(instance.local_port)
         return ret
-    
+
 
 class TunnelUpdateSerializer(TunnelSerializer):
     def to_internal_value(self, data):
         data = data.dict()
         data["local_port"] = int(data["local_port"])
         return data
-    
+
     def is_valid(self, raise_exception=False):
         required_keys = [
             "servername",
@@ -115,6 +117,7 @@ class TunnelUpdateSerializer(TunnelSerializer):
             "svc_port",
             "target_node",
             "target_port",
+            "jhub_userid",
         ]
         try:
             self.check_input_keys(required_keys)
@@ -124,7 +127,7 @@ class TunnelUpdateSerializer(TunnelSerializer):
             _errors = {}
         if _errors and raise_exception:
             raise ValidationError(_errors)
-        return super(TunnelSerializer, self).is_valid(raise_exception=raise_exception) 
+        return super(TunnelSerializer, self).is_valid(raise_exception=raise_exception)
 
 
 class RemoteSerializer(Serializer):

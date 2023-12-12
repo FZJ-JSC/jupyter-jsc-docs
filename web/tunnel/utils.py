@@ -420,10 +420,8 @@ def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
         k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)
 
 
-def start_remote_from_config_file(uuidcode="", hostname="", periodic=False):
-    if not uuidcode:
-        uuidcode = uuid.uuid4().hex
-    kwargs = {"uuidcode": uuidcode}
+def start_remote_from_config_file():
+    kwargs = {"uuidcode": "PeriodicCheck"}
     config_file_path = os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config")
     while True:
         try:
@@ -431,7 +429,7 @@ def start_remote_from_config_file(uuidcode="", hostname="", periodic=False):
                 config_file = f.read().split("\n")
         except:
             log.critical(
-                "Could not load ssh config file during startup",
+                "PeriodicCheck - Could not load ssh config file during startup",
                 exc_info=True,
                 extra=kwargs,
             )
@@ -442,24 +440,81 @@ def start_remote_from_config_file(uuidcode="", hostname="", periodic=False):
         ]
         # kwargs["remote_hosts"] = remote_hosts_lines
         for _hostname in remote_hosts_lines:
-            if hostname and hostname != _hostname:
-                continue
             kwargs["hostname"] = _hostname
             try:
                 log.debug(
-                    f"Start remote tunnel from config file (hostname={_hostname}) with timeout=1",
+                    f"PeriodicCheck - Start remote tunnel from config file (hostname={_hostname}) with timeout=1",
                     extra=kwargs,
                 )
                 start_remote(alert_admins=False, exc_info=False, timeout=1, **kwargs)
             except:
                 log.exception(
-                    f"Could not start ssh remote tunnel (hostname={_hostname})",
+                    f"PeriodicCheck - Could not start ssh remote tunnel (hostname={_hostname})",
                     extra=kwargs,
                 )
-        if periodic:
+        time.sleep(30)
+
+
+def check_running_services():
+    import os
+    import requests
+    import time
+
+    from .models import TunnelModel
+
+    jhub_cleanup_names = os.environ.get("JUPYTERHUB_CLEANUP_NAMES", "")
+    jhub_cleanup_urls = os.environ.get("JUPYTERHUB_CLEANUP_URLS", "")
+    jhub_cleanup_tokens = os.environ.get("JUPYTERHUB_CLEANUP_TOKENS", "")
+    if jhub_cleanup_names and jhub_cleanup_urls and jhub_cleanup_tokens:
+        while True:
+            jhub_cleanup_names = jhub_cleanup_names.split(";")
+            jhub_cleanup_urls_list = jhub_cleanup_urls.split(";")
+            jhub_cleanup_tokens_list = jhub_cleanup_tokens.split(";")
+            running_services_in_jhub = {}
+            i = 0
+            for jhub_cleanup_name in jhub_cleanup_names:
+                # call request, check if it's running
+                try:
+                    r = requests.get(
+                        jhub_cleanup_urls_list[i],
+                        headers={
+                            "Authorization": f"token {jhub_cleanup_tokens_list[i]}",
+                            "Accept": "application/json",
+                        },
+                    )
+                    r.raise_for_status()
+                    running_services_in_jhub[jhub_cleanup_name] = r.json()
+                except:
+                    log.exception("PeriodicCheck - Could not check running services")
+                finally:
+                    i += 1
+
+            all_tunnels = TunnelModel.objects.all()
+            for tunnel in all_tunnels:
+                if tunnel.jhub_credential in running_services_in_jhub.keys():
+                    if (
+                        f"{tunnel.jhub_userid}_{tunnel.servername}"
+                        not in running_services_in_jhub[tunnel.jhub_credential]
+                    ):
+                        log.info(
+                            f"PeriodicCheck - {tunnel.servername} is no longer running at {tunnel.jhub_credential}. Stop it."
+                        )
+                        stop_and_delete(
+                            alert_admins=False, raise_exception=False, **tunnel.__dict__
+                        )
+                    else:
+                        log.debug(
+                            f"PeriodicCheck - {tunnel.servername} is still running"
+                        )
+                else:
+                    log.warning(
+                        f"PeriodicCheck - {tunnel.jhub_credential} is not in running_services_list. Configure it in environment variables JUPYTERHUB_CLEANUP_NAMES, JUPYTERHUB_CLEANUP_URLS and JUPYTERHUB_CLEANUP_TOKENS to enabled internal cleanup feature."
+                    )
             time.sleep(30)
         else:
-            return
+            log.info(
+                "PeriodicCheck - environment variables JUPYTERHUB_CLEANUP_NAMES, JUPYTERHUB_CLEANUP_URLS and JUPYTERHUB_CLEANUP_TOKENS not set. Do not run periodic cleanup check in background."
+            )
 
 
 def get_custom_headers(request_headers):

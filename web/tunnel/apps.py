@@ -47,6 +47,7 @@ logging.setLoggerClass(ExtraLoggerClass)
 from django.apps import AppConfig
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 from jupyterjsc_tunneling.logs import update_extra_handlers
+from tunnel.utils import check_running_services
 from tunnel.utils import k8s_svc
 from tunnel.utils import start_remote
 from tunnel.utils import start_remote_from_config_file
@@ -182,19 +183,25 @@ class TunnelConfig(AppConfig):
                 if podname == tunnel_pods[0]:
                     global background_tasks
                     log.info(
-                        "Start remote tunnels from config file on drf-tunnel-0",
-                        extra={"uuidcode": "StartUp"},
+                        "Start remote tunnels check from config file on drf-tunnel-0 in background",
+                        extra={"uuidcode": "PeriodicCheck"},
+                    )
+                    proc = multiprocessing.Process(target=start_remote_from_config_file)
+                    background_tasks.append(proc)
+                    proc.start()
+
+                    ## We also check the running JupyterLabs, according to JupyterHub itself.
+                    ## If the corresponding service does not exist, we can remote the tunnel
+                    ## + service
+                    log.info(
+                        "Start service cleanup check in backgronud",
+                        extra={"uuidcode": "PeriodicCheck"},
                     )
                     proc = multiprocessing.Process(
-                        target=start_remote_from_config_file,
-                        args=("PeriodicCheck", "", True),
+                        target=check_running_services,
                     )
                     background_tasks.append(proc)
                     proc.start()
-                    log.info(
-                        "Start remote tunnels from config file on drf-tunnel-0 finished",
-                        extra={"uuidcode": "StartUp"},
-                    )
             except:
                 log.exception(
                     "Unexpected error during startup", extra={"uuidcode": "StartUp"}

@@ -25,6 +25,7 @@ class TunnelViewTests(UserCredentials):
         "svc_port": 8080,
         "target_node": "targetnode",
         "target_port": 34567,
+        "jhub_userid": "0",
     }
 
     expected_popen_args_tunnel_check = [
@@ -494,6 +495,7 @@ class RemoteViewTests(UserCredentials):
             "svc_name": "hdfcloud_2",
             "target_node": "targetnode",
             "target_port": 34567,
+            "jhub_userid": "0",
         }
         tunnel_response = self.client.post(tunnel_url, data=tunnel_data, format="json")
         self.assertEqual(tunnel_response.status_code, 201)
