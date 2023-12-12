@@ -442,10 +442,6 @@ def start_remote_from_config_file():
         for _hostname in remote_hosts_lines:
             kwargs["hostname"] = _hostname
             try:
-                log.debug(
-                    f"PeriodicCheck - Start remote tunnel from config file (hostname={_hostname}) with timeout=1",
-                    extra=kwargs,
-                )
                 start_remote(alert_admins=False, exc_info=False, timeout=1, **kwargs)
             except:
                 log.exception(
