@@ -1,6 +1,9 @@
 import copy
 import logging
+import multiprocessing
 import os
+
+import yaml
 
 # We might want to log forbidden extra keywords like "filename".
 # Instead of raising an exception, we just alter the keyword
@@ -43,6 +46,7 @@ logging.setLoggerClass(ExtraLoggerClass)
 
 from django.apps import AppConfig
 from jupyterjsc_tunneling.settings import LOGGER_NAME
+from jupyterjsc_tunneling.logs import update_extra_handlers
 from tunnel.utils import k8s_svc
 from tunnel.utils import start_remote
 from tunnel.utils import start_remote_from_config_file
@@ -53,6 +57,20 @@ from forwarder.utils.k8s import get_tunnel_sts_pod_names
 
 log = logging.getLogger(LOGGER_NAME)
 assert log.__class__.__name__ == "ExtraLoggerClass"
+
+background_tasks = []
+
+# For all workers: init logging
+_logging_config_cache = {}
+_logging_config_last_update = 0
+_logging_config_file = os.environ.get("LOGGING_CONFIG_PATH")
+
+try:
+    with open(_logging_config_file, "r") as f:
+        conf = yaml.full_load(f)
+    update_extra_handlers(conf)
+except:
+    print("Could not initial logging file")
 
 
 class TunnelConfig(AppConfig):
@@ -162,11 +180,17 @@ class TunnelConfig(AppConfig):
                 )
                 # Only start remote tunnels on first pod of stateful set
                 if podname == tunnel_pods[0]:
+                    global background_tasks
                     log.info(
                         "Start remote tunnels from config file on drf-tunnel-0",
                         extra={"uuidcode": "StartUp"},
                     )
-                    start_remote_from_config_file(uuidcode="StartUp")
+                    proc = multiprocessing.Process(
+                        target=start_remote_from_config_file,
+                        args=("PeriodicCheck", "", True),
+                    )
+                    background_tasks.append(proc)
+                    proc.start()
                     log.info(
                         "Start remote tunnels from config file on drf-tunnel-0 finished",
                         extra={"uuidcode": "StartUp"},

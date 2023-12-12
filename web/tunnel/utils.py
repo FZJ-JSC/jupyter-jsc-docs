@@ -4,6 +4,7 @@ import logging
 import os
 import socket
 import subprocess
+import time
 import uuid
 
 from jupyterjsc_tunneling.settings import LOGGER_NAME
@@ -127,7 +128,9 @@ def run_popen_cmd(
 
     if not timeout:
         timeout = int(os.environ.get("SSHTIMEOUT", "3"))
-    p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid)
+    p = subprocess.Popen(
+        cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=set_uid
+    )
     try:
         stdout, stderr = p.communicate(timeout=timeout)
         returncode = p.returncode
@@ -165,7 +168,7 @@ def run_popen_cmd(
             alert_admins_log[alert_admins](
                 f"{log_msg} failed. Action may be required",
                 extra=log_extra,
-                exc_info=exc_info
+                exc_info=exc_info,
             )
         raise Exception(
             f"unexpected returncode: {returncode} not in {expected_returncodes}"
@@ -259,7 +262,13 @@ def start_tunnel(alert_admins=True, raise_exception=True, **validated_data):
             )
 
 
-def start_remote(alert_admins=True, raise_exception=True, exc_info=True, timeout=None, **validated_data):
+def start_remote(
+    alert_admins=True,
+    raise_exception=True,
+    exc_info=True,
+    timeout=None,
+    **validated_data,
+):
     try:
         run_popen_cmd(
             "remote",
@@ -411,35 +420,46 @@ def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
         k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)
 
 
-def start_remote_from_config_file(uuidcode="", hostname=""):
+def start_remote_from_config_file(uuidcode="", hostname="", periodic=False):
     if not uuidcode:
         uuidcode = uuid.uuid4().hex
     kwargs = {"uuidcode": uuidcode}
     config_file_path = os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config")
-    try:
-        with open(config_file_path, "r") as f:
-            config_file = f.read().split("\n")
-    except:
-        log.critical(
-            "Could not load ssh config file during startup",
-            exc_info=True,
-            extra=kwargs,
-        )
-        return
-    remote_prefix = "Host remote_"
-    remote_hosts_lines = [
-        x[len(remote_prefix) :] for x in config_file if x.startswith(remote_prefix)
-    ]
-    # kwargs["remote_hosts"] = remote_hosts_lines
-    for _hostname in remote_hosts_lines:
-        if hostname and hostname != _hostname:
-            continue
-        kwargs["hostname"] = _hostname
+    while True:
         try:
-            log.debug(f"Start remote tunnel from config file (hostname={_hostname}) with timeout=1", extra=kwargs)
-            start_remote(alert_admins=False, exc_info=False, timeout=1, **kwargs)
+            with open(config_file_path, "r") as f:
+                config_file = f.read().split("\n")
         except:
-            log.warning(f"Could not start ssh remote tunnel (hostname={_hostname})", extra=kwargs)
+            log.critical(
+                "Could not load ssh config file during startup",
+                exc_info=True,
+                extra=kwargs,
+            )
+            return
+        remote_prefix = "Host remote_"
+        remote_hosts_lines = [
+            x[len(remote_prefix) :] for x in config_file if x.startswith(remote_prefix)
+        ]
+        # kwargs["remote_hosts"] = remote_hosts_lines
+        for _hostname in remote_hosts_lines:
+            if hostname and hostname != _hostname:
+                continue
+            kwargs["hostname"] = _hostname
+            try:
+                log.debug(
+                    f"Start remote tunnel from config file (hostname={_hostname}) with timeout=1",
+                    extra=kwargs,
+                )
+                start_remote(alert_admins=False, exc_info=False, timeout=1, **kwargs)
+            except:
+                log.exception(
+                    f"Could not start ssh remote tunnel (hostname={_hostname})",
+                    extra=kwargs,
+                )
+        if periodic:
+            time.sleep(30)
+        else:
+            return
 
 
 def get_custom_headers(request_headers):
