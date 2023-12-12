@@ -42,7 +42,9 @@ class RestartViewSet(GenericAPIView):
         log.info(
             f"Restart for all tunnels requested for {hostname}", extra=custom_headers
         )
-        tunnels = self.queryset_tunnel.filter(hostname=hostname, tunnel_pod=podname).all()
+        tunnels = self.queryset_tunnel.filter(
+            hostname=hostname, tunnel_pod=podname
+        ).all()
         for tunnel in tunnels:
             kwargs = {}
             for key, value in tunnel.__dict__.items():
@@ -57,18 +59,6 @@ class RestartViewSet(GenericAPIView):
         custom_headers["hostname"] = hostname
         utils.stop_remote(alert_admins=True, raise_exception=False, **custom_headers)
         utils.start_remote(alert_admins=True, raise_exception=False, **custom_headers)
-        return Response(status=status.HTTP_200_OK)
-
-
-class RemoteCheckViewSet(GenericAPIView):
-    permission_classes = [HasGroupPermission]
-    required_groups = ["access_to_webservice_remote_check"]
-
-    @request_decorator
-    def get(self, request, *args, **kwargs):
-        utils.start_remote_from_config_file(
-            **utils.get_custom_headers(self.request._request.META)
-        )
         return Response(status=status.HTTP_200_OK)
 
 
@@ -157,12 +147,16 @@ class TunnelViewSet(
             utils.start_tunnel(alert_admins=True, raise_exception=True, **data.dict())
             instance = self.get_object()
             serializer_class = TunnelUpdateSerializer
-            serializer = serializer_class(instance, data=data, context=self.get_serializer_context())        
+            serializer = serializer_class(
+                instance, data=data, context=self.get_serializer_context()
+            )
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             return Response(serializer.data)
         elif start_tunnel == "False":  # stop tunnel
-            utils.stop_tunnel(alert_admins=True, raise_exception=True, **request.data.dict())
+            utils.stop_tunnel(
+                alert_admins=True, raise_exception=True, **request.data.dict()
+            )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 

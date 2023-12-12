@@ -18,7 +18,6 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.http import HttpResponse
 from django.urls import include
 from django.urls import path
-from tunnel.views import RemoteCheckViewSet
 from tunnel.views import RemoteViewSet
 from tunnel.views import RestartViewSet
 
@@ -26,7 +25,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("tunnel.urls")),
     path("api/remote/", RemoteViewSet.as_view(), name="remote"),
-    path("api/remotecheck/", RemoteCheckViewSet.as_view(), name="remotecheck"),
     path("api/restart/", RestartViewSet.as_view(), name="restart"),
     path("api/health/", lambda r: HttpResponse()),
     path("api-auth/", include("rest_framework.urls")),
