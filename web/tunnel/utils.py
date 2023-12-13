@@ -563,7 +563,7 @@ def check_running_services():
                                 f"PeriodicCheck - Found unknown service {jhub}-{name_userid[0]}-{name_userid[1]} pointing to the tunneling service. Stop and delete it."
                             )
                             k8s_delete_svc(
-                                name=f"{jhub}-{name_userid[0]}-{name_userid[1]}"
+                                svc_name=f"{jhub}-{name_userid[0]}-{name_userid[1]}"
                             )
                     except:
                         log.exception(
