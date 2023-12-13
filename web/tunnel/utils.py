@@ -540,6 +540,12 @@ def check_running_services():
                         stop_and_delete(
                             alert_admins=False, raise_exception=False, **kwargs
                         )
+                        try:
+                            tunnel.delete()
+                        except:
+                            log.exception(
+                                "PeriodicCheck - Could not delete tunnel object"
+                            )
                     else:
                         log.debug(
                             f"PeriodicCheck - {tunnel.servername} is still running"
