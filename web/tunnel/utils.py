@@ -549,23 +549,26 @@ def check_running_services():
                         f"PeriodicCheck - {tunnel.jhub_credential} is not in running_services_list. Configure it in environment variables JUPYTERHUB_CLEANUP_NAMES, JUPYTERHUB_CLEANUP_URLS and JUPYTERHUB_CLEANUP_TOKENS to enabled internal cleanup feature."
                     )
             all_k8s_tunnel_services = check_all_k8s_services()
-            for jhub, name_userid in all_k8s_tunnel_services.items():
-                try:
-                    tunnel = (
-                        TunnelModel.objects.filter(jhub_credential=jhub)
-                        .filter(servername=name_userid[0])
-                        .filter(jhub_userid=name_userid[1])
-                        .all()
-                    )
-                    if not tunnel:
-                        log.info(
-                            f"PeriodicCheck - Found unknown service {jhub}-{name_userid[0]}-{name_userid[1]} pointing to the tunneling service. Stop and delete it."
+            for jhub, name_userids in all_k8s_tunnel_services.items():
+                for name_userid in name_userids:
+                    try:
+                        tunnel = (
+                            TunnelModel.objects.filter(jhub_credential=jhub)
+                            .filter(servername=name_userid[0])
+                            .filter(jhub_userid=name_userid[1])
+                            .all()
                         )
-                        k8s_delete_svc(name=f"{jhub}-{name_userid[0]}-{name_userid[1]}")
-                except:
-                    log.exception(
-                        f"PeriodicCheck - Could not delete unused svc {jhub}-{name_userid}"
-                    )
+                        if not tunnel:
+                            log.info(
+                                f"PeriodicCheck - Found unknown service {jhub}-{name_userid[0]}-{name_userid[1]} pointing to the tunneling service. Stop and delete it."
+                            )
+                            k8s_delete_svc(
+                                name=f"{jhub}-{name_userid[0]}-{name_userid[1]}"
+                            )
+                    except:
+                        log.exception(
+                            f"PeriodicCheck - Could not delete unused svc {jhub}-{name_userid}"
+                        )
             time.sleep(30)
     else:
         log.info(
