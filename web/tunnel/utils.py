@@ -267,6 +267,7 @@ def start_remote(
     raise_exception=True,
     exc_info=True,
     timeout=None,
+    verbose=False,
     **validated_data,
 ):
     try:
@@ -282,9 +283,13 @@ def start_remote(
             **validated_data,
         )
     except Exception as e:
-        alert_admins_log[alert_admins](
-            "Could not start remote ssh tunnel", extra=validated_data, exc_info=exc_info
-        )
+        # it's already logged in run_popen_cmd
+        if verbose:
+            alert_admins_log[alert_admins](
+                "Could not start remote ssh tunnel",
+                extra=validated_data,
+                exc_info=exc_info,
+            )
         if raise_exception:
             raise TunnelExceptionError("Could not start remote ssh tunnel", str(e))
 
@@ -420,7 +425,7 @@ def k8s_svc(action, alert_admins=False, raise_exception=True, **kwargs):
         k8s_log[action](f"Call K8s API to {action} svc done", extra=log_extra)
 
 
-def start_remote_from_config_file():
+def start_remote_from_config_file(verbose=False):
     kwargs = {"uuidcode": "PeriodicCheck"}
     config_file_path = os.environ.get("SSHCONFIGFILE", "/home/tunnel/.ssh/config")
     while True:
@@ -444,10 +449,12 @@ def start_remote_from_config_file():
             try:
                 start_remote(alert_admins=False, exc_info=False, timeout=1, **kwargs)
             except:
-                log.exception(
-                    f"PeriodicCheck - Could not start ssh remote tunnel (hostname={_hostname})",
-                    extra=kwargs,
-                )
+                # it's already logged as warning in start_remote
+                if verbose:
+                    log.exception(
+                        f"PeriodicCheck - Could not start ssh remote tunnel (hostname={_hostname})",
+                        extra=kwargs,
+                    )
         time.sleep(30)
 
 
@@ -465,10 +472,10 @@ def check_running_services():
         log.info(
             f"PeriodicCheck - Env variables are all set. Start check every 30 seconds for {jhub_cleanup_names}."
         )
+        jhub_cleanup_names = jhub_cleanup_names.split(";")
+        jhub_cleanup_urls_list = jhub_cleanup_urls.split(";")
+        jhub_cleanup_tokens_list = jhub_cleanup_tokens.split(";")
         while True:
-            jhub_cleanup_names = jhub_cleanup_names.split(";")
-            jhub_cleanup_urls_list = jhub_cleanup_urls.split(";")
-            jhub_cleanup_tokens_list = jhub_cleanup_tokens.split(";")
             running_services_in_jhub = {}
             i = 0
             for jhub_cleanup_name in jhub_cleanup_names:
