@@ -511,8 +511,12 @@ def check_running_services():
                         log.info(
                             f"PeriodicCheck - {tunnel.servername} is no longer running at {tunnel.jhub_credential}. Stop it."
                         )
+                        kwargs = {}
+                        for key, value in tunnel.__dict__.items():
+                            if key not in ["date", "_state"]:
+                                kwargs[key] = copy.deepcopy(value)
                         stop_and_delete(
-                            alert_admins=False, raise_exception=False, **tunnel.__dict__
+                            alert_admins=False, raise_exception=False, **kwargs
                         )
                     else:
                         log.debug(
