@@ -37,6 +37,7 @@ class ExtraFormatter(logging.Formatter):
         "stack_info",
         "thread",
         "threadName",
+        "_state",
     ]
 
     def format(self, record):
