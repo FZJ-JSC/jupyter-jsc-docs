@@ -471,8 +471,8 @@ def check_all_k8s_services():
                     jhub_userid = name_as_list[-1]
                     servicename = name_as_list[-2]
                     jhub = "-".join(name_as_list[:-2])
-                    if jhub not in all_k8s_services:
-                        all_k8s_services[jhub] = []
+                    if jhub not in all_k8s_tunnel_services:
+                        all_k8s_tunnel_services[jhub] = []
                     all_k8s_tunnel_services[jhub].append((servicename, jhub_userid))
             except:
                 log.exception(f"PeriodicCheck - Could not check svc {svc}")
