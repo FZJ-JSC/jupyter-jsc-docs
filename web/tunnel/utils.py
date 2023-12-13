@@ -458,6 +458,29 @@ def start_remote_from_config_file(verbose=False):
         time.sleep(30)
 
 
+def check_all_k8s_services():
+    all_k8s_tunnel_services = {}
+    deployment_name = os.environ.get("DEPLOYMENT_NAME", "tunneling")
+    try:
+        v1 = k8s_get_client()
+        all_k8s_services = v1.list_namespaced_service(namespace=k8s_get_svc_namespace())
+        for svc in all_k8s_services.items:
+            try:
+                if svc.spec.selector.get("app", "None") == deployment_name:
+                    name_as_list = svc.metadata.name.split("-")
+                    jhub_userid = name_as_list[-1]
+                    servicename = name_as_list[-2]
+                    jhub = "-".join(name_as_list[:-2])
+                    if jhub not in all_k8s_services:
+                        all_k8s_services[jhub] = []
+                    all_k8s_tunnel_services[jhub].append((servicename, jhub_userid))
+            except:
+                log.exception(f"PeriodicCheck - Could not check svc {svc}")
+    except:
+        log.exception("PeriodicCheck - Could not list services")
+    return all_k8s_tunnel_services
+
+
 def check_running_services():
     import os
     import requests
@@ -496,7 +519,6 @@ def check_running_services():
                     log.exception("PeriodicCheck - Could not check running services")
                 finally:
                     i += 1
-
             all_tunnels = TunnelModel.objects.all()
             log.debug(f"PeriodicCheck - Check for all tunnels: {all_tunnels}")
             for tunnel in all_tunnels:
@@ -525,6 +547,24 @@ def check_running_services():
                 else:
                     log.warning(
                         f"PeriodicCheck - {tunnel.jhub_credential} is not in running_services_list. Configure it in environment variables JUPYTERHUB_CLEANUP_NAMES, JUPYTERHUB_CLEANUP_URLS and JUPYTERHUB_CLEANUP_TOKENS to enabled internal cleanup feature."
+                    )
+            all_k8s_tunnel_services = check_all_k8s_services()
+            for jhub, name_userid in all_k8s_tunnel_services.items():
+                try:
+                    tunnel = (
+                        TunnelModel.objects.filter(jhub_credential=jhub)
+                        .filter(servername=name_userid[0])
+                        .filter(jhub_userid=name_userid[1])
+                        .all()
+                    )
+                    if not tunnel:
+                        log.info(
+                            f"PeriodicCheck - Found unknown service {jhub}-{name_userid[0]}-{name_userid[1]} pointing to the tunneling service. Stop and delete it."
+                        )
+                        k8s_delete_svc(name=f"{jhub}-{name_userid[0]}-{name_userid[1]}")
+                except:
+                    log.exception(
+                        f"PeriodicCheck - Could not delete unused svc {jhub}-{name_userid}"
                     )
             time.sleep(30)
     else:
