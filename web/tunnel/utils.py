@@ -515,20 +515,13 @@ def check_running_services():
                     running_services_in_jhub[jhub_cleanup_name] = [
                         x[: x.rfind("_")] for x in r.json()
                     ]
-                    log.debug(
-                        f"PeriodicCheck - {jhub_cleanup_name} result: {running_services_in_jhub[jhub_cleanup_name]}"
-                    )
                 except:
                     log.exception("PeriodicCheck - Could not check running services")
                 finally:
                     i += 1
             all_tunnels = TunnelModel.objects.all()
-            log.debug(f"PeriodicCheck - Check for all tunnels: {all_tunnels}")
             for tunnel in all_tunnels:
                 if tunnel.jhub_credential in running_services_in_jhub.keys():
-                    log.debug(
-                        f"PeriodicCheck - Tunnel jhub credential ( {tunnel.jhub_credential} ) is in list, check it"
-                    )
                     if (
                         f"{tunnel.jhub_userid}_{tunnel.servername}"
                         not in running_services_in_jhub[tunnel.jhub_credential]
@@ -549,14 +542,6 @@ def check_running_services():
                             log.exception(
                                 "PeriodicCheck - Could not delete tunnel object"
                             )
-                    else:
-                        log.debug(
-                            f"PeriodicCheck - {tunnel.servername} is still running"
-                        )
-                else:
-                    log.warning(
-                        f"PeriodicCheck - {tunnel.jhub_credential} is not in running_services_list. Configure it in environment variables JUPYTERHUB_CLEANUP_NAMES, JUPYTERHUB_CLEANUP_URLS and JUPYTERHUB_CLEANUP_TOKENS to enabled internal cleanup feature."
-                    )
             all_k8s_tunnel_services = check_all_k8s_services()
             for jhub, name_userids in all_k8s_tunnel_services.items():
                 for name_userid in name_userids:
