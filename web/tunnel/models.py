@@ -15,4 +15,4 @@ class TunnelModel(models.Model):
     jhub_credential = models.TextField("jhub_credential", default="jupyterhub")
 
     def __str__(self):
-        return f"{self.servername}: {self.svc_name} - ssh [...]@{self.hostname} -L {self.local_port}:{self.target_node}:{self.target_port}"
+        return self.servername

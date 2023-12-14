@@ -7,6 +7,7 @@ import subprocess
 import time
 import uuid
 
+import requests
 from jupyterjsc_tunneling.settings import LOGGER_NAME
 from kubernetes import client
 from kubernetes import config
@@ -482,10 +483,6 @@ def check_all_k8s_services():
 
 
 def check_running_services():
-    import os
-    import requests
-    import time
-
     from .models import TunnelModel
 
     jhub_cleanup_names = os.environ.get("JUPYTERHUB_CLEANUP_NAMES", "")
@@ -513,8 +510,13 @@ def check_running_services():
                         },
                     )
                     r.raise_for_status()
-                    running_services_in_jhub[jhub_cleanup_name] = r.json()
-                    log.debug(f"PeriodicCheck - {jhub_cleanup_name} result: {r.json()}")
+                    # list servers returns a start_id suffix, this is not needed here
+                    running_services_in_jhub[jhub_cleanup_name] = [
+                        x[: x.rfind("_")] for x in r.json()
+                    ]
+                    log.debug(
+                        f"PeriodicCheck - {jhub_cleanup_name} result: {running_services_in_jhub[jhub_cleanup_name]}"
+                    )
                 except:
                     log.exception("PeriodicCheck - Could not check running services")
                 finally:
