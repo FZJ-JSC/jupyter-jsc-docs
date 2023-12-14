@@ -508,6 +508,7 @@ def check_running_services():
                             "Authorization": f"token {jhub_cleanup_tokens_list[i]}",
                             "Accept": "application/json",
                         },
+                        timeout=3,
                     )
                     r.raise_for_status()
                     # list servers returns a start_id suffix, this is not needed here
