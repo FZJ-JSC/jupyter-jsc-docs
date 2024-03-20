@@ -488,6 +488,9 @@ def check_running_services():
     jhub_cleanup_names = os.environ.get("JUPYTERHUB_CLEANUP_NAMES", "")
     jhub_cleanup_urls = os.environ.get("JUPYTERHUB_CLEANUP_URLS", "")
     jhub_cleanup_tokens = os.environ.get("JUPYTERHUB_CLEANUP_TOKENS", "")
+    jhub_cleanup_enabled = os.environ.get(
+        "JUPYTERHUB_CLEANUP_ENABLED", "true"
+    ).lower() in ["1", "true"]
     if jhub_cleanup_names and jhub_cleanup_urls and jhub_cleanup_tokens:
         log.info(
             f"PeriodicCheck - Env variables are all set. Start check every 30 seconds for {jhub_cleanup_names}."
@@ -526,22 +529,28 @@ def check_running_services():
                         f"{tunnel.jhub_userid}_{tunnel.servername}"
                         not in running_services_in_jhub[tunnel.jhub_credential]
                     ):
-                        log.info(
-                            f"PeriodicCheck - {tunnel.servername} is no longer running at {tunnel.jhub_credential}. Stop it."
-                        )
-                        kwargs = {}
-                        for key, value in tunnel.__dict__.items():
-                            if key not in ["date", "_state"]:
-                                kwargs[key] = copy.deepcopy(value)
-                        stop_and_delete(
-                            alert_admins=False, raise_exception=False, **kwargs
-                        )
-                        try:
-                            tunnel.delete()
-                        except:
-                            log.exception(
-                                "PeriodicCheck - Could not delete tunnel object"
+                        if jhub_cleanup_enabled:
+                            log.debug(
+                                f"PeriodicCheck - {tunnel.servername} at {tunnel.jhub_credential} should be deleted, but it's disabled. Keep it running"
                             )
+                            continue
+                        else:
+                            log.info(
+                                f"PeriodicCheck - {tunnel.servername} is no longer running at {tunnel.jhub_credential}. Stop it."
+                            )
+                            kwargs = {}
+                            for key, value in tunnel.__dict__.items():
+                                if key not in ["date", "_state"]:
+                                    kwargs[key] = copy.deepcopy(value)
+                            stop_and_delete(
+                                alert_admins=False, raise_exception=False, **kwargs
+                            )
+                            try:
+                                tunnel.delete()
+                            except:
+                                log.exception(
+                                    "PeriodicCheck - Could not delete tunnel object"
+                                )
             all_k8s_tunnel_services = check_all_k8s_services()
             for jhub, name_userids in all_k8s_tunnel_services.items():
                 for name_userid in name_userids:
