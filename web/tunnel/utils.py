@@ -503,7 +503,6 @@ def check_running_services():
             i = 0
             for jhub_cleanup_name in jhub_cleanup_names:
                 # call request, check if it's running
-                log.debug(f"PeriodicCheck - Call list servers {jhub_cleanup_name}.")
                 try:
                     r = requests.get(
                         jhub_cleanup_urls_list[i],
@@ -518,6 +517,9 @@ def check_running_services():
                     running_services_in_jhub[jhub_cleanup_name] = [
                         x[: x.rfind("_")] for x in r.json()
                     ]
+                    log.debug(
+                        f"PeriodicCheck - Call list servers {jhub_cleanup_name} - {running_services_in_jhub[jhub_cleanup_name]}"
+                    )
                 except:
                     log.exception("PeriodicCheck - Could not check running services")
                 finally:
@@ -529,7 +531,7 @@ def check_running_services():
                         f"{tunnel.jhub_userid}_{tunnel.servername}"
                         not in running_services_in_jhub[tunnel.jhub_credential]
                     ):
-                        if jhub_cleanup_enabled:
+                        if not jhub_cleanup_enabled:
                             log.debug(
                                 f"PeriodicCheck - {tunnel.servername} at {tunnel.jhub_credential} should be deleted, but it's disabled. Keep it running"
                             )
