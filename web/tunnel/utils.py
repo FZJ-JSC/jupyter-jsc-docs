@@ -1,4 +1,5 @@
 import copy
+import datetime
 import json
 import logging
 import os
@@ -467,7 +468,16 @@ def check_all_k8s_services():
         all_k8s_services = v1.list_namespaced_service(namespace=k8s_get_svc_namespace())
         for svc in all_k8s_services.items:
             try:
-                if svc.spec.selector.get("app", "None") == deployment_name:
+                # Only delete svc, if the lost svc is older than 30 minutes.
+                # Otherwise a still creating tunnel might lose it's just created Service
+                if (
+                    svc.spec.selector.get("app", "None") == deployment_name
+                    and (
+                        datetime.datetime.now(datetime.UTC)
+                        - svc.metadata.creation_timestamp
+                    ).total_seconds()
+                    > 1800
+                ):
                     name_as_list = svc.metadata.name.split("-")
                     jhub_userid = name_as_list[-1]
                     servicename = name_as_list[-2]
