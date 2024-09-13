@@ -11,7 +11,7 @@ pytest-env==1.1.4
 
 pytest-django==4.9.0
 
-pre-commit==3.8.0
+pre-commit==3.5.0
 cfgv==3.4.0
 distlib==0.3.8
 filelock==3.16.0
