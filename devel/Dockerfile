@@ -25,7 +25,7 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/* 
     
 # Install app requirements
-COPY ./requirements_pip.txt /tmp/requirements_pip.txt
+COPY ./requirements_build.txt /tmp/requirements_pip.txt
 COPY devel/requirements_apt.txt /tmp/requirements_apt.txt
 RUN apt update && \
     cat /tmp/requirements_apt.txt | xargs apt install -yq && \
