@@ -24,7 +24,7 @@ virtualenv==20.26.4
 
 djangorestframework==3.15.2
 asgiref==3.8.1
-django==5.1.1
+django==4.2.16
 pytz==2024.2
 sqlparse==0.5.1
 typing-extensions==4.12.2

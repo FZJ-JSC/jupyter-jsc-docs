@@ -1,8 +1,6 @@
 stages:
   - unittest
   - build
-  - build-devel
-  - build-tag
 
 workflow:
   rules:
@@ -42,7 +40,7 @@ build:
     - if: $BUILD_COMMIT_SHORT == "True"
 
 build-devel:
-  stage: build-devel
+  stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -54,7 +52,7 @@ build-devel:
     - if: $RUN_BUILD_DEVEL == "True"
 
 build-tag:
-  stage: build-tag
+  stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
