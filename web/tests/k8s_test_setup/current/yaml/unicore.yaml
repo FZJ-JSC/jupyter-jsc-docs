@@ -1,0 +1,109 @@
+apiVersion:  v1
+kind: Service
+metadata:
+  name: unicore-6515fb85
+  namespace: gitlab
+spec:
+  selector:
+    app: unicore-6515fb85
+  type: ClusterIP
+  ports:
+    - name: gateway
+      port: 443
+      protocol: TCP
+      targetPort: 9112
+    - name: unicorex
+      port: 7112
+      protocol: TCP
+      targetPort: 7112
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unicore-6515fb85
+  namespace: gitlab
+spec:
+  selector:
+    matchLabels:
+      app: unicore-6515fb85
+  template:
+    metadata:
+      labels:
+        app: unicore-6515fb85
+    spec:
+      securityContext:
+        fsGroup: 100
+      imagePullSecrets:
+      - name: gitlab-registry
+      containers:
+      - env:
+        - name: SSH_RO_PATH
+          value: "/tmp/ssh_ro"
+        - name: UNITY_ADVERTISED_HOST
+          value: unity-6515fb85.gitlab.svc
+        - name: EXTERNALURL
+          value: https://unicore-6515fb85.gitlab.svc/DEMO-SITE/
+        - name: DEBUG
+          value: "true"
+        image: registry.jsc.fz-juelich.de/jupyterjsc/k8s/images/unicore-test-server/unicore-server:8.3.0-5
+        imagePullPolicy: Always
+        name: unicore-6515fb85
+        volumeMounts:
+        - name: files
+          subPath: manage_tunnel.sh
+          mountPath: /home/ljupyter/manage_tunnel.sh
+        - name: files
+          subPath: authorized_keys
+          mountPath: /tmp/ssh_ro/authorized_keys
+        - name: certs
+          mountPath: /opt/unicore/certs/gateway.key
+          subPath: gateway.key
+        - name: certs
+          mountPath: /opt/unicore/certs/gateway.p12
+          subPath: gateway.p12
+        - name: certs
+          mountPath: /opt/unicore/certs/gateway.crt
+          subPath: gateway.crt
+        - name: certs
+          mountPath: /opt/unicore/certs/tsi.key
+          subPath: tsi.key
+        - name: certs
+          mountPath: /opt/unicore/certs/tsi.p12
+          subPath: tsi.p12
+        - name: certs
+          mountPath: /opt/unicore/certs/tsi.crt
+          subPath: tsi.crt
+        - name: certs
+          mountPath: /opt/unicore/certs/unicorex.key
+          subPath: unicorex.key
+        - name: certs
+          mountPath: /opt/unicore/certs/unicorex.p12
+          subPath: unicorex.p12
+        - name: certs
+          mountPath: /opt/unicore/certs/unicorex.crt
+          subPath: unicorex.crt
+        - name: certs
+          mountPath: /opt/unicore/certs/unity/unity.pem
+          subPath: unity.crt
+        - name: certs
+          mountPath: /opt/unicore/certs/unity/ca-root.pem
+          subPath: ca-root.pem
+        - name: certs
+          mountPath: /opt/unicore/certs/ca-root.pem
+          subPath: ca-root.pem
+        - name: keypairs
+          mountPath: /tmp/ssh_ro/id_ed25519
+          subPath: ljupyter
+      volumes:
+      - name: files
+        configMap:
+          defaultMode: 400
+          name: unicore-files-6515fb85
+      - name: certs
+        secret:
+          defaultMode: 400
+          secretName: certs-6515fb85
+      - name: keypairs
+        secret:
+          defaultMode: 400
+          secretName: keypairs-6515fb85

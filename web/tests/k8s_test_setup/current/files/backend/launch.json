@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Django",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "runserver",
+                "0.0.0.0:8080",
+                "--insecure"
+            ],
+            "django": true,
+            "justMyCode": false,
+            "env": {
+                "BACKEND_SECRET_KEY": "94919419491419419419111"
+            }
+        }
+    ]
+}
